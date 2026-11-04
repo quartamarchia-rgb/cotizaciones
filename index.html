@@ -821,8 +821,8 @@ function renderSheet(){
   let html=`<div class="sheet">
   <div class="sheet-head"><div><a href="#control" class="muted">← Control</a><h1>${isNew?"Nueva cotización":"Cotización "+esc(d.folio)}</h1></div>
    ${isNew?`<div class="serie" role="radiogroup" aria-label="Serie del folio">
-      <label><input type="radio" name="serie" value="C" ${d.serie==="C"?"checked":""}> Correctiva · solo número</label>
-      <label><input type="radio" name="serie" value="P" ${d.serie==="P"?"checked":""}> Preventiva · lleva A</label></div>`
+      <label><input type="radio" name="serie" value="C" ${d.serie==="C"?"checked":""}> Correctiva</label>
+      <label><input type="radio" name="serie" value="P" ${d.serie==="P"?"checked":""}> Preventiva</label></div>`
      :H?`<span class="tag hist">Histórico · solo consulta</span>`:`<div>${stateButtons(d)}${d.estado==="rechazada"&&d.motivo?`<div class="why">${esc(d.motivo)}</div>`:""}${S.rejectOpen===d.folio?reasonPop(d):""}</div>`}
   </div>
   ${H?`<div class="banner">Esta cotización viene del Excel de Leydi y es <b>solo informativa</b>: no se puede modificar ni cuenta en el control. Puedes descargar su PDF o usar <b>Duplicar como nueva</b> para cotizar lo mismo con folio nuevo.</div>`:""}
