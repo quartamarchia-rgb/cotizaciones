@@ -1,0 +1,959 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icono-192.png"><meta name="theme-color" content="#0c769e">
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.min.js"></script>
+<script src="conexion.js"></script>
+</head><body>
+<title>Cotizaciones Quarta Marchia</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: barra superior con pestañas, contenido a lo ancho; control = tabla tipo Excel, cotización = hoja REG MAN */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18242c; --muted:#5d6b75; --line:#d5dde3; --line2:#e7ecef;
+  --brand:#0c769e; --brand-ink:#ffffff; --brand-soft:#e1f0f6; --red:#c73736;
+  --ok:#1f8a4c; --ok-soft:#dcf2e4; --warn:#a86a00; --warn-soft:#fdf0d2; --bad:#c0352f; --bad-soft:#fbe0de;
+  --label:#bfbfbf; --field:#fbfcfd;
+  --f-ui:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-head:"Barlow Semi Condensed","Barlow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10171c; --panel:#172129; --ink:#e4ebef; --muted:#9aa9b3; --line:#2c3a44; --line2:#22303a;
+  --brand:#3aa4cc; --brand-ink:#06151c; --brand-soft:#173a49; --red:#e2605f;
+  --ok:#4cc37e; --ok-soft:#163a26; --warn:#e2a93c; --warn-soft:#3c2f13; --bad:#ec6a63; --bad-soft:#41201e;
+  --label:#33424d; --field:#1b2730; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10171c; --panel:#172129; --ink:#e4ebef; --muted:#9aa9b3; --line:#2c3a44; --line2:#22303a;
+  --brand:#3aa4cc; --brand-ink:#06151c; --brand-soft:#173a49; --red:#e2605f;
+  --ok:#4cc37e; --ok-soft:#163a26; --warn:#e2a93c; --warn-soft:#3c2f13; --bad:#ec6a63; --bad-soft:#41201e;
+  --label:#33424d; --field:#1b2730; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.4;font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1320px;margin:0 auto}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:3px solid var(--brand)}
+header.top .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand img{height:34px;width:auto;background:#fff;border-radius:4px;padding:2px 4px}
+.brand b{font-family:var(--f-head);font-size:20px;letter-spacing:.01em}
+.brand small{display:block;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+nav.tabs{display:flex;gap:6px}
+nav.tabs a{font-family:var(--f-head);font-weight:600;font-size:16px;text-decoration:none;color:var(--ink);padding:8px 14px;border-radius:8px;border:1px solid var(--line)}
+nav.tabs a[aria-current="page"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+main{padding-block:18px 60px}
+h1,h2,h3{font-family:var(--f-head);margin:0;text-wrap:balance}
+h1{font-size:26px}h2{font-size:20px}h3{font-size:16px}
+.muted{color:var(--muted)}
+button,.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:8px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;line-height:1.2}
+button:hover,.btn:hover{border-color:var(--brand)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+button.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+button.wa,.btn.wa{background:#1f8a4c;border-color:#1f8a4c;color:#fff}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
+.banner{border-radius:10px;padding:10px 14px;margin-bottom:14px;background:var(--brand-soft);border:1px solid var(--line)}
+.banner.err{background:var(--bad-soft)}
+/* resumen */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.tile .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.tile .v{font-family:var(--f-head);font-size:26px;font-weight:700}
+.tile .s{font-size:13px;color:var(--muted)}
+.tile.ok{border-left:6px solid var(--ok)}.tile.warn{border-left:6px solid var(--warn)}.tile.bad{border-left:6px solid var(--bad)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin:10px 0}
+.filters label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:3px}
+.filters .grow{flex:1 1 220px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:7px 12px}
+.seg button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+/* seguimiento */
+.folios{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:12px}
+.folios summary{cursor:pointer}
+.fol-body{display:grid;gap:8px;margin-top:8px}
+.fol-row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.fol-row label{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}
+.pref{display:flex;align-items:center;gap:4px;font-weight:700;color:var(--ink)}
+.pref input{width:110px}
+.follow{background:var(--warn-soft);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:12px 0}
+.follow h2{display:flex;gap:8px;align-items:center}
+.follow ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.follow li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border-radius:8px;padding:6px 10px}
+.follow li .who{flex:1 1 240px;min-width:0}
+/* tabla control */
+.tablebox{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table.ctl{border-collapse:collapse;width:100%;min-width:980px;font-size:14px}
+table.ctl th{position:sticky;top:0;background:var(--brand);color:var(--brand-ink);text-align:left;font-family:var(--f-head);font-weight:600;padding:7px 8px;white-space:nowrap}
+table.ctl td{padding:6px 8px;border-top:1px solid var(--line2);vertical-align:middle}
+table.ctl tr.dayhead td{background:var(--bg);font-weight:700;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+table.ctl tr.r-aprobada td:first-child{box-shadow:inset 6px 0 0 var(--ok)}
+table.ctl tr.r-pendiente td:first-child{box-shadow:inset 6px 0 0 var(--warn)}
+table.ctl tr.r-rechazada td:first-child{box-shadow:inset 6px 0 0 var(--bad)}
+table.ctl tr.r-aprobada{background:color-mix(in srgb,var(--ok-soft) 55%,transparent)}
+table.ctl tr.r-rechazada{background:color-mix(in srgb,var(--bad-soft) 55%,transparent)}
+.folio{font-weight:700;white-space:nowrap;color:var(--brand);background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:3px}
+.num{text-align:right;white-space:nowrap}
+.tag{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:4px;padding:1px 6px;background:var(--brand-soft);color:var(--brand);white-space:nowrap}
+.state{display:inline-flex;gap:4px}
+.state button{padding:4px 8px;font-size:13px;border-radius:999px}
+.state button.on.aprobada{background:var(--ok);border-color:var(--ok);color:#fff}
+.state button.on.pendiente{background:var(--warn);border-color:var(--warn);color:#fff}
+.state button.on.rechazada{background:var(--bad);border-color:var(--bad);color:#fff}
+table.ctl tr.r-hist td{color:var(--muted)}
+table.ctl tr.r-hist td:first-child{box-shadow:inset 6px 0 0 var(--line)}
+.tag.hist{background:var(--line2);color:var(--muted)}
+.why{font-size:12px;color:var(--bad)}
+.pop{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pop button{font-size:12px;padding:4px 8px}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+/* hoja de cotización */
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:16px}
+.sheet-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.serie{display:flex;gap:8px;flex-wrap:wrap}
+.serie label{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600}
+.serie label:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}
+.serie input{width:auto}
+.datos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;border:1px solid var(--ink);font-size:14px}
+.datos .col{display:grid;grid-template-columns:150px minmax(0,1fr)}
+.datos .l{background:var(--label);font-weight:700;padding:5px 8px;border-bottom:1px solid var(--ink);display:flex;align-items:center}
+.datos .v{border-bottom:1px solid var(--ink);border-left:1px solid var(--ink);padding:2px}
+.datos .col+.col{border-left:1px solid var(--ink)}
+.datos .v input,.datos .v select{border:0;background:transparent;font-weight:700;text-transform:uppercase}
+.datos .v.ro{padding:5px 8px;font-weight:700}
+.datos .v input::placeholder,table.it input::placeholder{text-transform:none;font-weight:400}
+.items{overflow-x:auto}
+table.it{border-collapse:collapse;width:100%;min-width:960px;font-size:14px}
+table.it th{background:var(--label);padding:6px;border:1px solid var(--ink);font-family:var(--f-head)}
+table.it td{border-left:1px solid var(--ink);border-right:1px solid var(--ink);padding:2px}
+table.it tr:last-child td{border-bottom:1px solid var(--ink)}
+table.it input,table.it select{border:0;background:transparent;font-weight:700}
+table.it input.desc{text-transform:uppercase}
+table.it .c-m{width:150px}table.it .c-co{width:110px;background:var(--warn-soft)}
+table.it input.co{background:color-mix(in srgb,var(--warn-soft) 60%,transparent);font-weight:500}
+table.it input.miss{background:var(--bad-soft);outline:1px solid var(--bad)}
+table.it .c-q{width:80px}table.it .c-u{width:90px}table.it .c-p{width:120px}table.it .c-i{width:130px}table.it .c-x{width:40px}
+table.it td.money{text-align:right;font-weight:700;padding-right:8px;white-space:nowrap}
+table.it input.n{text-align:right}
+.x{border:0;background:none;color:var(--muted);font-size:18px;padding:2px 8px}
+.descs{border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:0}
+.descs.fact.pend{border-color:var(--warn);background:var(--warn-soft)}
+.descs legend{font-weight:700;padding:0 4px}
+.dopt{display:flex;align-items:center;gap:6px}
+.dopt input[type=radio]{width:auto}
+.dopt.off{color:var(--muted)}
+.dopt small{font-size:11px;color:var(--muted)}
+.tot-row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between}
+.util{background:var(--ok-soft);border:1px solid var(--line);border-radius:10px;padding:10px 14px;flex:1 1 320px;max-width:560px;display:grid;gap:4px}
+.util.low{background:var(--bad-soft)}
+.util .u-big{font-family:var(--f-head);font-size:22px;font-weight:700}
+.util.low .u-big{color:var(--bad)}
+.u-warn{color:var(--bad);font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.totals{margin-left:auto;display:grid;grid-template-columns:auto 140px;justify-content:end;gap:0;font-weight:700}
+.totals div{padding:4px 8px;border-bottom:1px solid var(--line)}
+.totals .t{font-size:18px}
+.opts{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.opts label{display:flex;gap:6px;align-items:center}
+.opts input[type=checkbox]{width:auto}
+.opts input[type=number]{width:80px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hint{font-size:13px;color:var(--muted)}
+.note-int{background:var(--warn-soft);border-radius:8px;padding:8px 12px;font-size:14px}
+.err-list{color:var(--bad);font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
+.phone{font-size:13px;color:var(--muted);user-select:all}
+@media (max-width:720px){
+  .datos{grid-template-columns:1fr}.datos .col+.col{border-left:0;border-top:1px solid var(--ink)}
+  .datos .col{grid-template-columns:120px minmax(0,1fr)}
+  h1{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="brand"><img src="logo.png" alt="Quarta Marchia"><div><b>Cotizaciones</b><small>Control diario y seguimiento</small></div></div>
+  <nav class="tabs" aria-label="Secciones">
+    <a href="#control" id="tab-control">Control</a>
+    <a href="#catalogos" id="tab-cat">Catálogos</a>
+    <a href="#nueva" id="tab-nueva">+ Nueva cotización</a>
+  </nav>
+</div></header>
+<main class="wrap" id="app"><div class="empty">Cargando cotizaciones…</div></main>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+"use strict";
+/* ---------- utilidades ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>"$"+(Math.round((+n||0)*100)/100).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+const num2=n=>(Math.round((+n||0)*100)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const todayISO=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const dmy=iso=>iso?iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4):"";
+const MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DIAS=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const daysBetween=(a,b)=>Math.floor((new Date(b+"T12:00:00")-new Date(a.slice(0,10)+"T12:00:00"))/864e5);
+const norm=s=>String(s||"").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Z0-9Ñ]+/g," ").trim();
+const tabId=Math.random().toString(36).slice(2);
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3200)}
+function calc(q){
+  const sub=(q.items||[]).reduce((a,i)=>a+(+i.c||0)*(+i.p||0),0);
+  const desc=sub*((+q.desc||0)/100);
+  const base=sub-desc;
+  const iva=q.sinIva?0:base*0.16;
+  return {sub,desc,iva,total:base+iva};
+}
+const vehStr=q=>[q.modelo,q.anio,q.placa].filter(Boolean).join(" ");
+const MOTIVOS=["Precio","Se lo llevó a otro taller","Lo hará después","Solo autorizó una parte","Otro"];
+
+/* ---------- estado ---------- */
+const S={db:null,dl:null,canWrite:true,quotes:new Map(),loaded:false,cat:[],cl:[],vh:[],cfg:{C:0,P:0},
+  filt:{mes:todayISO().slice(0,7),estado:"todos",tipo:"todos",q:""},draft:null,editing:null,rejectOpen:null,err:null};
+
+/* ---------- tarifas: costo con IVA → sin IVA → + margen según tipo de cliente ---------- */
+const TAR_DEF={particular:45,ges:40,gobierno:55,integra:60,empresa:40,pmc:45,moGes:1000,moOtros:1500,socio:25,sabado:10,efectivo:20,efMargen:57,utilMin:15};
+S.tar={...TAR_DEF};
+const TAR_NOM={particular:"Particular",ges:"Grupo GES",gobierno:"Dependencia de gobierno",integra:"Integra",empresa:"Empresa con crédito",pmc:"PMC (sin IVA)"};
+const EMPRESAS=["RECA","VALTOR","MSPV","PROEVENTOS","SAYER","FIN VIVIR"];
+function tarifaAuto(d){const n=norm(d.cliente);if(/INTEGRA/.test(n))return "integra";if(/\bGES\b/.test(n))return "ges";if(/\bPMC\b/.test(n))return "pmc";
+  if(d.credito)return EMPRESAS.some(e=>n.includes(e))?"empresa":"gobierno";return "particular"}
+const tarifaDe=d=>d.tarifa||tarifaAuto(d);
+// PMC: al costo con IVA se le suma el margen directo y su cotización no desglosa IVA
+const estiloPMC=d=>tarifaDe(d)==="pmc"||descTipoDe(d)==="efectivo";
+// en pago en efectivo las refacciones llevan su propio margen (57%) para que, tras el 20% de descuento, quede ~20% de utilidad
+const margenDe=d=>descTipoDe(d)==="efectivo"?(+S.tar.efMargen||0):(+S.tar[tarifaDe(d)]||0);
+const precioCot=(costo,d)=>Math.ceil(Math.round((estiloPMC(d)?+costo:+costo/1.16)*(1+margenDe(d)/100)*100)/100);
+const precioRegla=(costo,t)=>Math.ceil(Math.round((t==="pmc"?+costo:+costo/1.16)*(1+(+S.tar[t]||0)/100)*100)/100); // se redondea a centavos antes de subir al peso, para evitar errores de decimales
+const esMO=it=>/^MANO DE OBRA$/.test(norm(it.d));
+const moDe=t=>t==="ges"?+S.tar.moGes:+S.tar.moOtros;
+
+/* ---------- conexión ---------- */
+(async function boot(){
+  const claude=window.claude;
+  if(!claude||!claude.use){S.err="Esta vista no puede conectarse a la base de datos. Abre la página desde Claude.";render();return}
+  const [db,dl,user]=await Promise.all([claude.use("db"),claude.use("downloads"),claude.use("user")]);
+  S.db=db;S.dl=dl;
+  if(user){try{const c=await user.can("data.write");if(c===false)S.canWrite=false}catch(e){}try{S.isOwner=await user.isOwner()}catch(e){}}
+  if(!db){S.err="Inicia sesión en Claude para ver y guardar cotizaciones.";render();return}
+  const timer=setTimeout(()=>{if(!S.loaded){S.err="No se pudo conectar todavía. Revisa tu internet; la página seguirá intentando.";render()}},10000);
+  db.collection("cot").orderBy("fecha","desc").limit(1000).onSnapshot(snap=>{
+    S.quotes=new Map(snap.docs.map(d=>[d.id,d.data()]));
+    if(!snap.metadata.fromCache){S.loaded=true;clearTimeout(timer);if(S.err&&S.err.startsWith("No se pudo"))S.err=null}
+    render(true);
+  },e=>{clearTimeout(timer);S.err="Se perdió la conexión con la base de datos ("+e.code+"). Vuelve a abrir la página.";render()});
+  const sub=(path,fn)=>db.doc(path).onSnapshot(s=>{if(s.exists){fn(s.data());render(true)}},()=>{});
+  sub("cat/refacciones",d=>{S.cat=d.items||[];S.catIdx=new Map();for(const i of S.cat){S.catIdx.set(norm(i.d+" "+(i.m||"")),i);if(!S.catIdx.has(norm(i.d)))S.catIdx.set(norm(i.d),i)}});
+  sub("cat/clientes",d=>{S.cl=d.items||[];S.clIdx=new Map(S.cl.map(i=>[norm(i.n),i]))});
+  sub("cat/vehiculos",d=>{S.vh=d.items||[];S.vhIdx=new Map(S.vh.map(i=>[norm(i.pl),i]))});
+  sub("cfg/folios",d=>{S.cfg=d});
+  sub("cfg/tarifas",d=>{S.tar={...TAR_DEF,...d}});
+  sub("stats/refacciones",d=>{S.statR=d});
+  sub("stats/clientes",d=>{S.statC=d});
+})();
+
+/* ---------- ruteo ---------- */
+function route(){
+  const h=location.hash.slice(1)||"control";
+  if(h==="nueva"){ if(!S.draft||S.draft.folio)S.draft=newDraft(); S.editing=null; }
+  else if(h.startsWith("editar-")){ const f=h.slice(7); if(S.editing!==f){S.editing=f; const q=S.quotes.get(f); S.draft=q?JSON.parse(JSON.stringify(q)):null;} }
+  else {S.editing=null}
+  render();
+}
+window.addEventListener("hashchange",route);
+function newDraft(base){
+  const d={folio:null,serie:"C",fecha:todayISO(),cliente:"",tel:"",km:"",anio:"",marca:"",modelo:"",placa:"",tipoServ:"CORRECTIVO",
+    items:[{c:1,u:"PZA",d:"",p:0}],desc:0,sinIva:false,credito:false,concepto:"",estado:"pendiente",motivo:"",enviada:null,seg:[],notas:""};
+  if(base){for(const k of ["cliente","tel","km","anio","marca","modelo","placa","tipoServ","serie","desc","sinIva","credito","concepto","facturarA","tarifa","socio","descTipo","factura"])d[k]=base[k];d.items=JSON.parse(JSON.stringify(base.items))}
+  return d;
+}
+
+/* ---------- render ---------- */
+let rerenderLock=false;
+function render(fromData){
+  const h=location.hash.slice(1)||"control";
+  ["#tab-control","#tab-nueva","#tab-cat"].forEach(t=>$(t).removeAttribute("aria-current"));
+  if(h==="catalogos"||h==="clientes"){$("#tab-cat").setAttribute("aria-current","page");if(!(fromData&&document.activeElement&&document.activeElement.id==="k-q"))renderCatalog(h);return}
+  if(h==="control"||!h)$("#tab-control").setAttribute("aria-current","page");
+  if(h==="nueva")$("#tab-nueva").setAttribute("aria-current","page");
+  if(fromData&&document.activeElement&&$("#app").contains(document.activeElement)&&document.activeElement.matches("input,select,textarea")&&document.activeElement.id!=="f-q")return; // no interrumpir captura
+  if(h==="nueva"||h.startsWith("editar-")){
+    if(h.startsWith("editar-")&&!S.draft){const q=S.quotes.get(h.slice(7));if(q)S.draft=JSON.parse(JSON.stringify(q))}
+    renderSheet();
+  } else renderControl();
+}
+
+function lastContact(q){const s=(q.seg||[]).slice(-1)[0];return s||q.enviada||q.creado||q.fecha}
+const hist=q=>!!q.importado; // cotizaciones traídas del Excel: solo de consulta
+const SEG_DESDE="2026-11-01"; // el seguimiento arranca en noviembre 2026
+function needsFollow(q,today){
+  if(hist(q)||q.estado!=="pendiente"||q.fecha<SEG_DESDE)return false;
+  const age=daysBetween(q.fecha,today);
+  return age<=15&&daysBetween(lastContact(q),today)>=2;
+}
+function renderControl(){
+  const app=$("#app");
+  const all=[...S.quotes.values()];
+  const today=todayISO();
+  const months=[...new Set(all.map(q=>q.fecha.slice(0,7)).concat([today.slice(0,7)]))].sort().reverse();
+  const f=S.filt;
+  const inMonthAll=all.filter(q=>q.fecha.slice(0,7)===f.mes);
+  const inMonth=inMonthAll.filter(q=>!hist(q));
+  const nHist=inMonthAll.length-inMonth.length;
+  const qn=norm(f.q);
+  const rows=inMonthAll.filter(q=>(f.estado==="todos"||(!hist(q)&&q.estado===f.estado))&&(f.tipo==="todos"||(f.tipo==="credito")===!!q.credito)
+    &&(!qn||norm([q.folio,q.cliente,q.placa,q.modelo,q.marca,q.concepto,q.tel].join(" ")).includes(qn)))
+    .sort((a,b)=>b.fecha.localeCompare(a.fecha)||(b.creado||"").localeCompare(a.creado||"")||b.num-a.num);
+  const cnt=e=>inMonth.filter(q=>q.estado===e);
+  const ap=cnt("aprobada"),pe=cnt("pendiente"),re=cnt("rechazada");
+  const sum=a=>a.reduce((s,q)=>s+calc(q).total,0);
+  const decided=ap.length+re.length;
+  const wk=new Date(today+"T12:00:00");const dow=(wk.getDay()+6)%7;const monday=new Date(wk.getTime()-dow*864e5).toISOString().slice(0,10);
+  const hoy=all.filter(q=>q.fecha===today).length, semana=all.filter(q=>q.fecha>=monday&&q.fecha<=today).length;
+  const follow=all.filter(q=>needsFollow(q,today)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const old=all.filter(q=>!hist(q)&&q.fecha>=SEG_DESDE&&q.estado==="pendiente"&&daysBetween(q.fecha,today)>15).length;
+  const [yy,mm]=f.mes.split("-");
+  let html="";
+  if(S.err)html+=`<div class="banner err">${esc(S.err)}</div>`;
+  if(!S.canWrite)html+=`<div class="banner">Tienes acceso solo de lectura: puedes consultar, pero no guardar cambios.</div>`;
+  html+=`<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;justify-content:space-between">
+    <div><h1>Control de cotizaciones</h1><div class="muted">${MESES[+mm-1]} ${yy} · Corte del día: <b>${hoy}</b> · Corte de la semana: <b>${semana}</b></div></div>
+    </div>`;
+  const nC=(S.cfg.C||0)+1,nP=(S.cfg.P||0)+1;
+  html+=`<details class="folios" id="fol-box" ${S.folOpen?"open":""}><summary><b>Folios</b> · la siguiente correctiva será <b>QM-COT-${nC}</b> y la siguiente preventiva <b>QM-COT-${nP}A</b> <span class="muted">· Cambiar</span></summary>
+    <div class="fol-body"><p class="hint">Escribe el <b>último folio que usaste en Excel</b>. La app seguirá desde el número siguiente, para que todo quede correlativo.</p>
+    <div class="fol-row"><label>Última correctiva<span class="pref">QM-COT-<input id="fol-c" type="number" min="0" step="1" value="${S.cfg.C||0}"></span></label>
+    <label>Última preventiva<span class="pref">QM-COT-<input id="fol-p" type="number" min="0" step="1" value="${S.cfg.P||0}">A</span></label>
+    ${S.canWrite?`<button class="primary" id="fol-save">Guardar folios</button>`:""}</div><div id="fol-msg" class="hint"></div></div></details>`;
+  const T=S.tar;
+  if(S.isOwner)html+=`<details class="folios" id="tar-box" ${S.tarOpen?"open":""}><summary><b>Márgenes</b> · Particular ${T.particular}% · GES ${T.ges}% · Gobierno ${T.gobierno}% · Integra ${T.integra}% · Empresas ${T.empresa}% · PMC ${T.pmc}% sin IVA · Mano de obra GES $${T.moGes} / demás $${T.moOtros} · Socio ${T.socio}% · Sábado ${T.sabado}% · Efectivo: margen ${T.efMargen}% y descuento ${T.efectivo}% · Utilidad mínima ${T.utilMin}% <span class="muted">· Cambiar</span></summary>
+    <div class="fol-body"><p class="hint">Se aplican así: costo del proveedor con IVA ÷ 1.16 = costo sin IVA; más el margen; redondeado al peso hacia arriba. Ejemplo con Particular: $100 → $86.21 → <b>$${precioRegla(100,"particular")}</b>. <b>PMC</b> es distinto: al costo con IVA se le suma el margen directo y no se desglosa IVA: $100 → <b>$${precioRegla(100,"pmc")}</b>.</p>
+    <div class="fol-row">${["particular","ges","gobierno","integra","empresa","pmc"].map(t=>`<label>${TAR_NOM[t]}<span class="pref"><input id="tar-${t}" type="number" min="0" step="1" value="${T[t]}" style="width:80px">%</span></label>`).join("")}
+    <label>Mano de obra GES<span class="pref">$<input id="tar-moGes" type="number" min="0" step="50" value="${T.moGes}" style="width:90px"></span></label>
+    <label>Mano de obra demás<span class="pref">$<input id="tar-moOtros" type="number" min="0" step="50" value="${T.moOtros}" style="width:90px"></span></label>
+    <label>Utilidad mínima<span class="pref"><input id="tar-utilMin" type="number" min="0" max="100" step="1" value="${T.utilMin}" style="width:70px">%</span></label>
+    <label>Promoción sábado<span class="pref"><input id="tar-sabado" type="number" min="0" max="100" step="1" value="${T.sabado}" style="width:70px">%</span></label>
+    <label>Descuento en efectivo<span class="pref"><input id="tar-efectivo" type="number" min="0" max="100" step="1" value="${T.efectivo}" style="width:70px">%</span></label>
+    <label>Margen en efectivo<span class="pref"><input id="tar-efMargen" type="number" min="0" step="1" value="${T.efMargen}" style="width:70px">%</span></label>
+    <label>Descuento de socio<span class="pref"><input id="tar-socio" type="number" min="0" max="100" step="1" value="${T.socio}" style="width:70px">%</span></label>
+    ${S.canWrite?`<button class="primary" id="tar-save">Guardar márgenes</button>`:""}</div></div></details>`;
+  html+=`<div class="summary">
+    <div class="tile"><div class="k">Cotizaciones del mes</div><div class="v">${inMonth.length}</div><div class="s">${money(sum(inMonth))} cotizado</div></div>
+    <div class="tile ok"><div class="k">Aprobadas</div><div class="v">${ap.length}</div><div class="s">${money(sum(ap))}</div></div>
+    <div class="tile warn"><div class="k">Sin respuesta</div><div class="v">${pe.length}</div><div class="s">${money(sum(pe))} por cerrar</div></div>
+    <div class="tile bad"><div class="k">No aprobadas</div><div class="v">${re.length}</div><div class="s">${money(sum(re))} perdido</div></div>
+    <div class="tile"><div class="k">Tasa de aprobación</div><div class="v">${decided?Math.round(ap.length/decided*100)+"%":"—"}</div><div class="s">de las ya decididas</div></div>
+  </div>`;
+  if(follow.length){
+    html+=`<section class="follow" aria-label="Dar seguimiento hoy"><h2>Dar seguimiento hoy <span class="tag">${follow.length}</span></h2>
+    <div class="hint">Cotizaciones sin respuesta con 2 días o más desde el último contacto (solo las de los últimos 15 días).</div><ul>`;
+    const showN=S.followAll?follow.length:5;
+    for(const q of follow.slice(0,showN)){
+      const dd=daysBetween(lastContact(q),today);
+      const parts=[`<b>${esc(q.cliente)}</b>`,esc(vehStr(q)||q.concepto||""),money(calc(q).total)].filter(Boolean);
+      html+=`<li><span class="who"><button class="folio" data-open="${esc(q.folio)}">${esc(q.folio)}</button> · ${parts.join(" · ")} <span class="muted">· hace ${dd} días</span></span>
+      ${waButton(q,"seguimiento")}</li>`;
+    }
+    if(follow.length>5)html+=`<li><button id="follow-all">${S.followAll?"Ver solo las 5 más antiguas":"Ver las "+follow.length}</button></li>`;
+    html+=`</ul></section>`;
+  }
+  const sinOrden=all.filter(q=>!hist(q)&&q.credito&&q.estado==="aprobada"&&!q.orden);
+  if(sinOrden.length)html+=`<div class="banner err"><b>${sinOrden.length} cotizaciones aprobadas de crédito sin orden del cliente</b> (${money(sum(sinOrden))}). Sin la orden no se puede facturar ni cobrar. Abre cada una y captura el folio de control.</div>`;
+  if(old)html+=`<div class="hint" style="margin-bottom:8px">${old} cotizaciones llevan más de 15 días sin respuesta. Márcalas como aprobadas o no aprobadas para que el control quede limpio.</div>`;
+  if(nHist)html+=`<div class="hint" style="margin-bottom:8px">${nHist} cotizaciones de este mes vienen del Excel y se muestran en gris <b>solo como consulta</b>: no cuentan en los totales ni en el seguimiento.</div>`;
+  html+=`<div class="filters">
+    <label>Mes<select id="f-mes">${months.map(m=>`<option value="${m}" ${m===f.mes?"selected":""}>${MESES[+m.slice(5)-1]} ${m.slice(0,4)}</option>`).join("")}</select></label>
+    <label>Estado<span class="seg" role="group" aria-label="Estado">${[["todos","Todas"],["aprobada","🟢 Aprobadas"],["pendiente","🟡 Sin respuesta"],["rechazada","🔴 No aprobadas"]].map(([v,t])=>`<button data-fest="${v}" aria-pressed="${f.estado===v}">${t}</button>`).join("")}</span></label>
+    <label>Cliente<span class="seg" role="group" aria-label="Tipo de cliente">${[["todos","Todos"],["credito","Crédito"],["particular","Particular"]].map(([v,t])=>`<button data-ftipo="${v}" aria-pressed="${f.tipo===v}">${t}</button>`).join("")}</span></label>
+    <label class="grow">Buscar<input id="f-q" type="search" placeholder="Folio, cliente, placa, vehículo…" value="${esc(f.q)}"></label>
+  </div>`;
+  if(!S.loaded&&!S.quotes.size){html+=`<div class="tablebox"><div class="empty">${S.err?"Sin conexión.":"Cargando cotizaciones…"}</div></div>`;app.innerHTML=html;bindControl();return}
+  html+=`<div class="tablebox"><table class="ctl"><thead><tr><th>#</th><th>Fecha</th><th>Cotización</th><th>Concepto</th><th>Celular</th><th>Vehículo</th><th>Nombre</th><th class="num">Total</th><th>Estado</th><th>WhatsApp</th></tr></thead><tbody>`;
+  if(!rows.length)html+=`<tr><td colspan="10"><div class="empty">${inMonthAll.length?"Ninguna cotización coincide con el filtro.":"Aún no hay cotizaciones este mes. Crea la primera con “+ Nueva cotización”."}</div></td></tr>`;
+  let lastDay=null;let i=rows.length;
+  for(const q of rows){
+    if(q.fecha!==lastDay){lastDay=q.fecha;const dd=new Date(q.fecha+"T12:00:00");const n=rows.filter(r=>r.fecha===q.fecha).length;
+      html+=`<tr class="dayhead"><td colspan="10">${DIAS[dd.getDay()]} ${dmy(q.fecha)} · ${n} cotizacion${n===1?"":"es"}</td></tr>`}
+    const t=calc(q);
+    const H=hist(q);
+    html+=`<tr class="${H?"r-hist":"r-"+q.estado}"><td>${i--}</td><td style="white-space:nowrap">${dmy(q.fecha)}</td>
+      <td><button class="folio" data-open="${esc(q.folio)}">${esc(q.folio)}</button>${q.serie==="P"?' <span class="tag">Prev.</span>':""}</td>
+      <td style="min-width:200px">${esc(q.concepto||"")}</td>
+      <td style="white-space:nowrap">${esc(q.tel||"—")}</td>
+      <td>${esc(vehStr(q))||'<span class="muted">—</span>'}</td>
+      <td>${esc(q.cliente)}${q.factura===false?' <span class="tag">Sin factura</span>':""}${q.socio?`<div class="hint">Socio: ${esc(q.socio)} · ${+q.desc}%</div>`:(q.descTipo==="sabado"||q.descTipo==="efectivo")?`<div class="hint">${DESC_NOM[q.descTipo]} · ${+q.desc}%</div>`:""}${utilBaja(q)?' <span class="tag" style="background:var(--bad-soft);color:var(--bad)">Utilidad baja</span>':""}${q.facturarA?`<div class="hint">Facturar a: ${esc(q.facturarA)}</div>`:""}${q.credito?' <span class="tag">Crédito</span>':""}${q.orden?`<div class="hint">Orden ${esc(q.orden)}</div>`:(q.credito&&q.estado==="aprobada"?' <span class="tag" style="background:var(--bad-soft);color:var(--bad)">Falta orden</span>':"")}</td>
+      <td class="num">${q.sinPrecio?"—":money(t.total)}</td>
+      <td>${H?'<span class="tag hist">Histórico</span>':stateButtons(q)+(q.estado==="rechazada"&&q.motivo?`<div class="why">${esc(q.motivo)}</div>`:"")+(S.rejectOpen===q.folio?reasonPop(q):"")}</td>
+      <td>${H?'<span class="muted">—</span>':waButton(q,q.estado==="aprobada"?"lista":(q.enviada?"seguimiento":"envio"),true)}</td></tr>`;
+  }
+  html+=`</tbody></table></div>`;
+  app.innerHTML=html;bindControl();
+}
+function stateButtons(q){
+  const dis=S.canWrite?"":"disabled";
+  return `<span class="state" role="group" aria-label="Estado de ${esc(q.folio)}">
+    <button ${dis} class="aprobada ${q.estado==="aprobada"?"on":""}" data-set="aprobada" data-f="${esc(q.folio)}" title="Aprobada" aria-pressed="${q.estado==="aprobada"}">✓</button>
+    <button ${dis} class="pendiente ${q.estado==="pendiente"?"on":""}" data-set="pendiente" data-f="${esc(q.folio)}" title="Sin respuesta" aria-pressed="${q.estado==="pendiente"}">…</button>
+    <button ${dis} class="rechazada ${q.estado==="rechazada"?"on":""}" data-set="rechazada" data-f="${esc(q.folio)}" title="No aprobada" aria-pressed="${q.estado==="rechazada"}">✕</button></span>`;
+}
+function reasonPop(q){return `<div class="pop" aria-label="Motivo">${MOTIVOS.map(m=>`<button data-motivo="${esc(m)}" data-f="${esc(q.folio)}">${esc(m)}</button>`).join("")}</div>`}
+
+/* ---------- catálogos: refacciones más usadas y clientes ---------- */
+const HIST_MESES=["2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10"];
+S.kat={periodo:"todo",base:"cotizadas",serv:false,q:"",orden:"piezas",verTodas:false,tipo:"todos",ordenC:"monto"};
+function rangoMeses(per){
+  const hoy=todayISO().slice(0,7);
+  const add=(ym,n)=>{let [y,m]=ym.split("-").map(Number);m+=n;while(m<1){m+=12;y--}while(m>12){m-=12;y++}return y+"-"+String(m).padStart(2,"0")};
+  if(per==="todo")return ["2026-01",hoy];
+  if(per==="3m")return [add(hoy,-2),hoy];
+  if(per==="6m")return [add(hoy,-5),hoy];
+  return [per,per];
+}
+const esServicio=r=>r.u==="SERV"||/MANO DE OBRA|BALANCEO|MONTAJE|ALINEACI|RECTIFICAD|NITROGENO|DIAGN/.test(norm(r.d));
+function aggRefacciones(){
+  const [a,b]=rangoMeses(S.kat.periodo);const m=new Map();
+  const get=(d,u)=>{const k=norm(d);let e=m.get(k);if(!e){e={d,u,n:0,q:0,qa:0,p:0,f:""};m.set(k,e)}return e};
+  for(const it of (S.statR&&S.statR.items)||[]){
+    let n=0,q=0;HIST_MESES.forEach((ym,i)=>{if(ym>=a&&ym<=b){n+=it.v[i]||0;q+=it.m[i]||0}});
+    if(!n)continue;const e=get(it.d,it.u);e.n+=n;e.q+=q;e.p=it.p;e.f=it.f;
+  }
+  for(const qt of S.quotes.values()){
+    if(hist(qt))continue;const ym=qt.fecha.slice(0,7);if(ym<a||ym>b)continue;
+    const seen=new Set();
+    for(const it of qt.items||[]){const fd=fullDesc(it);const k=norm(fd);if(!k)continue;const e=get(fd,it.u);
+      if(!seen.has(k)){e.n++;seen.add(k)}e.q+=+it.c||0;if(qt.estado==="aprobada")e.qa+=+it.c||0;
+      if(qt.fecha>=e.f){e.f=qt.fecha;if(+it.p>0)e.p=+it.p;e.d=fd;e.u=it.u}}
+  }
+  let rows=[...m.values()];
+  if(!S.kat.serv)rows=rows.filter(r=>!esServicio(r));
+  if(S.kat.base==="aprobadas")rows=rows.filter(r=>r.qa>0);
+  const qn=norm(S.kat.q);if(qn)rows=rows.filter(r=>norm(r.d).includes(qn));
+  const key=S.kat.base==="aprobadas"?"qa":(S.kat.orden==="veces"?"n":"q");
+  rows.sort((x,y)=>y[key]-x[key]||y.n-x.n);
+  return rows;
+}
+function aggClientes(){
+  const m=new Map();
+  const get=n=>{const k=norm(n);let e=m.get(k);if(!e){e={n,tel:"",cred:false,k:0,t:0,ka:0,ta:0,f:"",pl:new Set()};m.set(k,e)}return e};
+  for(const c of (S.statC&&S.statC.items)||[]){const e=get(c.n);e.tel=c.tel||e.tel;e.cred=e.cred||c.cred;e.k+=c.k;e.t+=c.t;e.f=c.f>e.f?c.f:e.f;(c.pl||[]).forEach(p=>e.pl.add(p))}
+  for(const q of S.quotes.values()){
+    if(hist(q)||!q.cliente)continue;const e=get(q.cliente);const t=calc(q).total;
+    e.k++;e.t+=t;if(q.estado==="aprobada"){e.ka++;e.ta+=t}if(q.fecha>e.f)e.f=q.fecha;if(q.tel)e.tel=q.tel;e.cred=!!q.credito||e.cred;if(q.placa&&q.placa.length>=5)e.pl.add(norm(q.placa).replace(/ /g,"-"));
+  }
+  for(const c of S.cl){const e=m.get(norm(c.n));if(e){if(c.tel&&!e.tel)e.tel=c.tel}}
+  let rows=[...m.values()];
+  if(S.kat.tipo!=="todos")rows=rows.filter(r=>(S.kat.tipo==="credito")===r.cred);
+  const qn=norm(S.kat.q);if(qn)rows=rows.filter(r=>norm(r.n+" "+r.tel).includes(qn));
+  const o=S.kat.ordenC;rows.sort((x,y)=>o==="cot"?y.k-x.k:o==="ultima"?y.f.localeCompare(x.f):y.t-x.t);
+  return rows;
+}
+function renderCatalog(view){
+  const app=$("#app");const k=S.kat;const hoy=todayISO().slice(0,7);
+  const meses=[];for(let ym=hoy;ym>="2026-01";){meses.push(ym);let [y,m]=ym.split("-").map(Number);m--;if(m<1){m=12;y--}ym=y+"-"+String(m).padStart(2,"0")}
+  let html=`<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;justify-content:space-between"><div><h1>Catálogos</h1>
+    <div class="muted">Historial del Excel (enero–octubre 2026) más todo lo que se cotice en la app. Se actualiza solo.</div></div>
+    <span class="seg" role="tablist"><button data-view="catalogos" aria-pressed="${view==="catalogos"}">Refacciones</button><button data-view="clientes" aria-pressed="${view==="clientes"}">Clientes</button></span></div>`;
+  if(!S.statR&&!S.loaded){app.innerHTML=html+`<div class="empty">Cargando…</div>`;bindCatalog(view);return}
+  if(view==="catalogos"){
+    const rows=aggRefacciones();const show=k.verTodas?rows:rows.slice(0,100);
+    const [a,b]=rangoMeses(k.periodo);
+    html+=`<div class="filters">
+      <label>Periodo<select id="k-per"><option value="todo" ${k.periodo==="todo"?"selected":""}>Todo 2026</option><option value="3m" ${k.periodo==="3m"?"selected":""}>Últimos 3 meses</option><option value="6m" ${k.periodo==="6m"?"selected":""}>Últimos 6 meses</option>${meses.map(m=>`<option value="${m}" ${k.periodo===m?"selected":""}>${MESES[+m.slice(5)-1]} ${m.slice(0,4)}</option>`).join("")}</select></label>
+      <label>Contar<span class="seg"><button data-base="cotizadas" aria-pressed="${k.base==="cotizadas"}">Cotizadas</button><button data-base="aprobadas" aria-pressed="${k.base==="aprobadas"}">Solo aprobadas</button></span></label>
+      ${k.base==="cotizadas"?`<label>Ordenar por<span class="seg"><button data-orden="piezas" aria-pressed="${k.orden==="piezas"}">Piezas</button><button data-orden="veces" aria-pressed="${k.orden==="veces"}">Veces</button></span></label>`:""}
+      <label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)"><input id="k-serv" type="checkbox" style="width:auto" ${k.serv?"checked":""}> Incluir servicios y mano de obra</label>
+      <label class="grow">Buscar<input id="k-q" type="search" placeholder="Aceite, filtro, balatas…" value="${esc(k.q)}"></label>
+      <button id="k-csv">⬇ Descargar lista (Excel)</button></div>`;
+    if(k.base==="aprobadas")html+=`<div class="hint" style="margin-bottom:8px">"Solo aprobadas" cuenta desde noviembre 2026, que es cuando la app empezó a registrar qué se aprobó. Para compras con más historial usa "Cotizadas".</div>`;
+    html+=`<div class="tablebox"><table class="ctl" style="min-width:820px"><thead><tr><th>#</th><th>Refacción</th><th>Unidad</th><th class="num">Veces cotizada</th><th class="num">Piezas cotizadas</th><th class="num">Piezas aprobadas</th><th class="num">Último precio</th><th>Última vez</th></tr></thead><tbody>`;
+    if(!show.length)html+=`<tr><td colspan="8"><div class="empty">No hay refacciones con ese filtro.</div></td></tr>`;
+    show.forEach((r,i)=>html+=`<tr><td>${i+1}</td><td><b>${esc(r.d)}</b></td><td>${esc(r.u)}</td><td class="num">${r.n}</td><td class="num"><b>${+r.q.toFixed(2)}</b></td><td class="num">${r.qa?+r.qa.toFixed(2):'<span class="muted">—</span>'}</td><td class="num">${r.p?money(r.p):"—"}</td><td>${dmy(r.f)}</td></tr>`);
+    html+=`</tbody></table></div>`;
+    if(rows.length>100)html+=`<div style="margin-top:10px"><button id="k-all">${k.verTodas?"Ver solo las 100 primeras":"Ver las "+rows.length}</button></div>`;
+    S.kRows=rows;
+  } else {
+    const rows=aggClientes();
+    html+=`<div class="filters">
+      <label>Tipo<span class="seg"><button data-tipo="todos" aria-pressed="${k.tipo==="todos"}">Todos</button><button data-tipo="credito" aria-pressed="${k.tipo==="credito"}">Crédito</button><button data-tipo="particular" aria-pressed="${k.tipo==="particular"}">Particular</button></span></label>
+      <label>Ordenar por<span class="seg"><button data-ordc="monto" aria-pressed="${k.ordenC==="monto"}">Monto</button><button data-ordc="cot" aria-pressed="${k.ordenC==="cot"}">Cotizaciones</button><button data-ordc="ultima" aria-pressed="${k.ordenC==="ultima"}">Más reciente</button></span></label>
+      <label class="grow">Buscar<input id="k-q" type="search" placeholder="Nombre o teléfono" value="${esc(k.q)}"></label>
+      <button id="k-csv">⬇ Descargar lista (Excel)</button></div>
+      <div class="hint" style="margin-bottom:8px">"CLIENTE" agrupa particulares que se cotizaron sin nombre en el Excel. Lo aprobado se cuenta desde noviembre 2026.</div>
+      <div class="tablebox"><table class="ctl" style="min-width:900px"><thead><tr><th>#</th><th>Cliente</th><th>Tipo</th><th>Teléfono</th><th class="num">Cotizaciones</th><th class="num">Monto cotizado</th><th class="num">Aprobado</th><th class="num">Unidades</th><th>Última cotización</th></tr></thead><tbody>`;
+    if(!rows.length)html+=`<tr><td colspan="9"><div class="empty">No hay clientes con ese filtro.</div></td></tr>`;
+    rows.forEach((r,i)=>html+=`<tr><td>${i+1}</td><td><b>${esc(r.n)}</b></td><td>${r.cred?'<span class="tag">Crédito</span>':"Particular"}</td><td style="white-space:nowrap">${esc(r.tel||"—")}</td><td class="num">${r.k}</td><td class="num">${money(r.t)}</td><td class="num">${r.ta?money(r.ta):'<span class="muted">—</span>'}</td><td class="num">${r.pl.size||"—"}</td><td>${dmy(r.f)}</td></tr>`);
+    html+=`</tbody></table></div>`;
+    S.kRows=rows;
+  }
+  app.innerHTML=html;bindCatalog(view);
+}
+function bindCatalog(view){
+  const app=$("#app");
+  app.onclick=e=>{const b=e.target.closest("button");if(!b)return;
+    if(b.dataset.view){S.kat.q="";S.kat.verTodas=false;location.hash=b.dataset.view;return}
+    if(b.dataset.base){S.kat.base=b.dataset.base}else if(b.dataset.orden){S.kat.orden=b.dataset.orden}
+    else if(b.dataset.tipo){S.kat.tipo=b.dataset.tipo}else if(b.dataset.ordc){S.kat.ordenC=b.dataset.ordc}
+    else if(b.id==="k-all"){S.kat.verTodas=!S.kat.verTodas}else if(b.id==="k-csv"){exportCSV(view);return}else return;
+    renderCatalog(view)};
+  const per=$("#k-per");if(per)per.onchange=e=>{S.kat.periodo=e.target.value;renderCatalog(view)};
+  const sv=$("#k-serv");if(sv)sv.onchange=e=>{S.kat.serv=e.target.checked;renderCatalog(view)};
+  const q=$("#k-q");if(q)q.oninput=e=>{S.kat.q=e.target.value;clearTimeout(bindCatalog.t);bindCatalog.t=setTimeout(()=>{const pos=q.selectionStart;renderCatalog(view);const n=$("#k-q");n.focus();n.setSelectionRange(pos,pos)},250)};
+}
+async function exportCSV(view){
+  const cell=v=>{const s=String(v??"");return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+  let lines,name;
+  if(view==="catalogos"){lines=[["Refacción","Unidad","Veces cotizada","Piezas cotizadas","Piezas aprobadas","Último precio","Última vez"]].concat(S.kRows.map(r=>[r.d,r.u,r.n,+r.q.toFixed(2),+r.qa.toFixed(2),r.p,dmy(r.f)]));name="Refacciones mas usadas "+todayISO()+".csv"}
+  else{lines=[["Cliente","Tipo","Teléfono","Cotizaciones","Monto cotizado","Aprobado","Unidades","Última cotización"]].concat(S.kRows.map(r=>[r.n,r.cred?"Crédito":"Particular",r.tel,r.k,r.t.toFixed(2),r.ta.toFixed(2),r.pl.size,dmy(r.f)]));name="Clientes "+todayISO()+".csv"}
+  const csv="\ufeff"+lines.map(l=>l.map(cell).join(",")).join("\r\n");
+  if(!S.dl){toast("Esta vista no permite descargar archivos.");return}
+  try{await S.dl.save({filename:name,data:new Blob([csv],{type:"text/csv"})})}catch(e){if(e&&e.code!=="declined")toast("No se pudo descargar ("+(e.code||"error")+").")}
+}
+
+/* ---------- WhatsApp ---------- */
+function waNumber(tel){let d=String(tel||"").replace(/\D/g,"");if(d.length===10)d="52"+d;else if(d.length===12&&d.startsWith("52"));else if(d.length===13&&d.startsWith("521"))d="52"+d.slice(3);else return null;return d}
+function saludoNombre(q){if(q.credito)return "";const n=String(q.cliente||"").trim();if(!n||/^CLIENTE$/i.test(n))return "";const first=n.split(/\s+/)[0];return ", "+first.charAt(0)+first.slice(1).toLowerCase()}
+function waText(q,kind){
+  const v=[q.marca?q.modelo:q.modelo,q.anio,q.placa].filter(Boolean).join(" ")||"vehículo";
+  const t=money(calc(q).total);
+  if(kind==="envio")return `Buen día${saludoNombre(q)}. Le comparto la cotización ${q.folio} de su ${v}${q.sinPrecio?"":" por "+t+(q.sinIva?"":" (IVA incluido)")}. Le adjunto el PDF.${descTipoDe(q)==="efectivo"?" El descuento por pago en efectivo es válido durante "+MESES[+q.fecha.slice(5,7)-1].toLowerCase()+".":""} Quedamos atentos a su autorización.\n\nQuarta Marchia · 981 206 8402`;
+  if(kind==="seguimiento")return `Hola${saludoNombre(q)}. Le escribimos para dar seguimiento a la cotización ${q.folio} de su ${v}. ¿Desea que programemos el servicio?\n\nQuarta Marchia · 981 206 8402`;
+  return `Buen día${saludoNombre(q)}. Su ${v} ya está lista para entrega. Le esperamos de lunes a viernes de 8:00 a 18:00 y sábado de 8:00 a 14:00.\n\nQuarta Marchia · 981 206 8402`;
+}
+const WA_LABEL={envio:"Enviar",seguimiento:"Seguimiento",lista:"Unidad lista"};
+function waButton(q,kind,compact){
+  const n=waNumber(q.tel);
+  if(!n)return `<span class="muted" title="Agrega el celular del cliente">Sin celular</span>`;
+  const href="https://wa.me/"+n+"?text="+encodeURIComponent(waText(q,kind));
+  return `<a class="btn wa" target="_blank" rel="noopener" href="${href}" data-wa="${kind}" data-f="${esc(q.folio)}">📲 ${WA_LABEL[kind]}</a>`;
+}
+
+/* ---------- eventos control ---------- */
+function bindControl(){
+  const app=$("#app");
+  const fb=$("#fol-box");if(fb)fb.ontoggle=()=>S.folOpen=fb.open;
+  const tb=$("#tar-box");if(tb)tb.ontoggle=()=>S.tarOpen=tb.open;
+  const m=$("#f-mes");if(m)m.onchange=e=>{S.filt.mes=e.target.value;render()};
+  const qq=$("#f-q");if(qq)qq.oninput=e=>{S.filt.q=e.target.value;clearTimeout(bindControl.t);bindControl.t=setTimeout(()=>{const pos=qq.selectionStart;render();const n=$("#f-q");n.focus();n.setSelectionRange(pos,pos)},250)};
+  app.onclick=async e=>{
+    const b=e.target.closest("button,a");if(!b)return;
+    if(b.id==="fol-save"){saveFolios();return}
+    if(b.id==="tar-save"){saveTarifas();return}
+    if(b.id==="follow-all"){S.followAll=!S.followAll;render();return}
+    if(b.dataset.fest){S.filt.estado=b.dataset.fest;render();return}
+    if(b.dataset.ftipo){S.filt.tipo=b.dataset.ftipo;render();return}
+    if(b.dataset.open){location.hash="editar-"+b.dataset.open;return}
+    if(b.dataset.set){const f=b.dataset.f;
+      if(b.dataset.set==="rechazada"){S.rejectOpen=S.rejectOpen===f?null:f;render();return}
+      S.rejectOpen=null;await patch(f,{estado:b.dataset.set,motivo:""});return}
+    if(b.dataset.motivo){S.rejectOpen=null;await patch(b.dataset.f,{estado:"rechazada",motivo:b.dataset.motivo});return}
+    if(b.dataset.wa){markContact(b.dataset.f,b.dataset.wa)}
+  };
+}
+async function saveTarifas(){
+  if(!S.isOwner){toast("Solo el gerente puede cambiar los márgenes.");return}
+  const v={};for(const k of Object.keys(TAR_DEF)){const n=+$("#tar-"+k).value;if(!(n>=0)){toast("Revisa los números: no pueden ir vacíos ni negativos.");return}v[k]=n}
+  try{await S.db.doc("cfg/tarifas").set(v);S.tar={...TAR_DEF,...v};S.tarOpen=false;document.activeElement&&document.activeElement.blur();render();toast("Márgenes guardados")}
+  catch(e){toast("No se pudo guardar ("+(e.code||"error")+").")}
+}
+async function saveFolios(){
+  const c=Math.floor(+$("#fol-c").value),pv=Math.floor(+$("#fol-p").value),msg=$("#fol-msg");
+  if(!(c>=0)||!(pv>=0)){msg.innerHTML='<span class="err-list">Escribe números enteros, sin letras.</span>';return}
+  const dupC=S.quotes.has("QM-COT-"+(c+1)),dupP=S.quotes.has("QM-COT-"+(pv+1)+"A");
+  if(dupC||dupP){msg.innerHTML=`<span class="err-list">${dupC?"La QM-COT-"+(c+1)+" ya existe en la app. ":""}${dupP?"La QM-COT-"+(pv+1)+"A ya existe en la app. ":""}Escribe el último folio realmente usado para no repetir números.</span>`;return}
+  try{await S.db.doc("cfg/folios").update({C:c,P:pv});S.cfg={...S.cfg,C:c,P:pv};S.folOpen=false;document.activeElement&&document.activeElement.blur();render();
+    toast(`Listo: la siguiente será QM-COT-${c+1} o QM-COT-${pv+1}A`)}
+  catch(e){msg.innerHTML='<span class="err-list">No se pudo guardar ('+esc(e.code||"error")+'). Intenta de nuevo.</span>'}
+}
+async function patch(folio,data){
+  if(!S.canWrite){toast("Solo lectura: no se guardó.");return}
+  try{data.mod=new Date().toISOString();await S.db.doc("cot/"+folio).update(data);toast(data.estado==="aprobada"?"Marcada como aprobada":data.estado==="rechazada"?"Marcada como no aprobada":data.estado==="pendiente"?"Marcada como sin respuesta":"Guardado")}
+  catch(e){toast("No se pudo guardar ("+(e.code||"error")+"). Intenta de nuevo.")}
+}
+function markContact(folio,kind){
+  const q=S.quotes.get(folio);if(!q||!S.canWrite)return;
+  const now=new Date().toISOString();
+  if(kind==="envio")patch(folio,{enviada:now});
+  else if(kind==="seguimiento")patch(folio,{seg:[...(q.seg||[]),now].slice(-20)});
+}
+
+/* ---------- hoja de cotización ---------- */
+function renderSheet(){
+  const app=$("#app");const d=S.draft;
+  if(!d){app.innerHTML=S.loaded?`<div class="empty">No encontré esa cotización. <a href="#control">Volver al control</a></div>`:`<div class="empty">Cargando…</div>`;return}
+  const isNew=!d.folio;const H=hist(d);
+  const nextNum=(S.cfg[d.serie]||0)+1;
+  const folioTxt=d.folio||("QM-COT-"+nextNum+(d.serie==="P"?"A":""));
+  const t=calc(d);
+  const integra=/INTEGRA/i.test(d.cliente);
+  const tipos=["CORRECTIVO","PREVENTIVO","PREVENTIVO Y CORRECTIVO","AFINACIÓN MAYOR","AFINACIÓN MENOR"];
+  if(d.tipoServ&&!tipos.includes(d.tipoServ))tipos.push(d.tipoServ);
+  const F=(id,val,attrs="")=>`<input id="${id}" value="${esc(val)}" ${attrs} autocomplete="off">`;
+  let html=`<div class="sheet">
+  <div class="sheet-head"><div><a href="#control" class="muted">← Control</a><h1>${isNew?"Nueva cotización":"Cotización "+esc(d.folio)}</h1></div>
+   ${isNew?`<div class="serie" role="radiogroup" aria-label="Serie del folio">
+      <label><input type="radio" name="serie" value="C" ${d.serie==="C"?"checked":""}> Correctiva · solo número</label>
+      <label><input type="radio" name="serie" value="P" ${d.serie==="P"?"checked":""}> Preventiva · lleva A</label></div>`
+     :H?`<span class="tag hist">Histórico · solo consulta</span>`:`<div>${stateButtons(d)}${d.estado==="rechazada"&&d.motivo?`<div class="why">${esc(d.motivo)}</div>`:""}${S.rejectOpen===d.folio?reasonPop(d):""}</div>`}
+  </div>
+  ${H?`<div class="banner">Esta cotización viene del Excel de Leydi y es <b>solo informativa</b>: no se puede modificar ni cuenta en el control. Puedes descargar su PDF o usar <b>Duplicar como nueva</b> para cotizar lo mismo con folio nuevo.</div>`:""}
+  <div class="datos">
+    <div class="col">
+      <div class="l">CLIENTE:</div><div class="v">${F("e-cliente",d.cliente,'list="dl-cl" placeholder="Nombre o dependencia"')}</div>
+      <div class="l">TELÉFONO:</div><div class="v">${F("e-tel",d.tel,'inputmode="tel" placeholder="981 000 0000"')}</div>
+      <div class="l">AÑO:</div><div class="v">${F("e-anio",d.anio,'inputmode="numeric"')}</div>
+      <div class="l">MARCA:</div><div class="v">${F("e-marca",d.marca)}</div>
+      <div class="l">MODELO:</div><div class="v">${F("e-modelo",d.modelo)}</div>
+      <div class="l">PLACA:</div><div class="v">${F("e-placa",d.placa,'list="dl-vh" placeholder="Escribe la placa y se llena solo"')}</div>
+      <div class="l">FOLIO:</div><div class="v ro">${esc(folioTxt)}${isNew?' <span class="hint">(se asigna al guardar)</span>':""}</div>
+    </div>
+    <div class="col">
+      <div class="l">KILOMETRAJE:</div><div class="v">${F("e-km",d.km,'inputmode="numeric" placeholder="KM"')}</div>
+      <div class="l">FECHA DE EMISIÓN:</div><div class="v"><input id="e-fecha" type="date" value="${esc(d.fecha)}"></div>
+      <div class="l">TIPO DE SERVICIO:</div><div class="v"><select id="e-tipo">${tipos.map(x=>`<option ${x===d.tipoServ?"selected":""}>${esc(x)}</option>`).join("")}</select></div>
+      <div class="l">CONCEPTO (control):</div><div class="v">${F("e-concepto",d.concepto,'placeholder="Ej. Afin. mayor y balatas"')}</div>
+      <div class="l">TARIFA:</div><div class="v"><select id="e-tarifa" ${H?"disabled":""}>${Object.keys(TAR_NOM).map(t=>`<option value="${t}" ${t===tarifaDe(d)?"selected":""}>${TAR_NOM[t]} · ${S.tar[t]}%</option>`).join("")}</select></div>
+      <div class="l">CRÉDITO:</div><div class="v ro"><label style="display:flex;gap:6px;align-items:center;font-weight:600"><input id="e-cred" type="checkbox" style="width:auto" ${d.credito?"checked":""}> Cliente con crédito</label></div>
+      <div class="l">FACTURAR A:</div><div class="v">${F("e-facturar",d.facturarA||"",'list="dl-raz" placeholder="Razón social (ej. ESGES, Country Club)"')}</div>
+      <div class="l">ORDEN DEL CLIENTE:</div><div class="v">${F("e-orden",d.orden||"",'placeholder="Folio de control (ej. 2529)"')}</div>
+      <div class="l">RESPONSABLE:</div><div class="v">${F("e-resp",d.responsable||"",'placeholder="Quien trae la unidad"')}</div>
+      <div class="l">NOTAS:</div><div class="v">${F("e-notas",d.notas,'placeholder="Solo uso interno"')}</div>
+    </div>
+  </div>
+  ${integra?`<div class="note-int"><b>Integra Bienestar:</b> descarga las dos versiones. La de precios para cotizar y la <b>sin precio</b> para el diagnóstico.</div>`:""}
+  <div class="items"><table class="it"><thead><tr><th class="c-q">CANTIDAD</th><th class="c-u">UNIDAD</th><th>DESCRIPCIÓN</th><th class="c-m">MARCA</th><th class="c-co" title="Lo que te cobra el proveedor, con IVA. No se imprime.">COSTO c/IVA</th><th class="c-p">P.UNITARIO</th><th class="c-i">IMPORTE</th><th class="c-x"><span class="hint">Quitar</span></th></tr></thead><tbody>
+  ${d.items.map((it,k)=>`<tr>
+    <td><input class="n" data-k="${k}" data-f="c" type="number" min="0" step="any" value="${esc(it.c)}" aria-label="Cantidad"></td>
+    <td><select data-k="${k}" data-f="u" aria-label="Unidad">${["PZA","SERV","LT","JGO","KIT"].concat(["PZA","SERV","LT","JGO","KIT"].includes(it.u)?[]:[it.u]).map(u=>`<option ${u===it.u?"selected":""}>${esc(u)}</option>`).join("")}</select></td>
+    <td><input class="desc" data-k="${k}" data-f="d" list="dl-cat" value="${esc(it.d)}" placeholder="Escribe: aceite, balatas, mano de obra…" aria-label="Descripción" autocomplete="off"></td>
+    <td><input class="desc${needsBrand(it)&&!String(it.m||"").trim()&&S.showErr?" miss":""}" data-k="${k}" data-f="m" list="dl-marcas" value="${esc(it.m||"")}" placeholder="${needsBrand(it)?"Obligatoria":"No aplica"}" aria-label="Marca" autocomplete="off"></td>
+    <td><input class="n co" data-k="${k}" data-f="costo" type="number" min="0" step="any" value="${it.costo?esc(it.costo):""}" placeholder="${needsBrand(it)?"Proveedor":""}" aria-label="Costo del proveedor con IVA"></td>
+    <td><input class="n" data-k="${k}" data-f="p" type="number" min="0" step="any" value="${esc(it.p)}" aria-label="Precio unitario"></td>
+    <td class="money" id="imp-${k}">${money((+it.c||0)*(+it.p||0))}</td>
+    <td><button class="x" data-del="${k}" aria-label="Quitar renglón">×</button></td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="actions"><button id="add-row">+ Agregar renglón</button><span class="hint">Escribe el <b>costo del proveedor con IVA</b> y el precio se calcula solo: ${estiloPMC(d)?"al costo con IVA se le suma "+margenDe(d)+"% directo y la cotización no lleva IVA"+(tarifaDe(d)==="pmc"?" (PMC).":" (pago en efectivo, igual que PMC)."):"se le quita el IVA y se suma "+S.tar[tarifaDe(d)]+"% ("+TAR_NOM[tarifaDe(d)]+")."} La columna amarilla no se imprime. Mano de obra: $${moDe(tarifaDe(d)).toLocaleString("es-MX")}.</span></div>
+  <div class="opts">
+    ${facturaHTML(d,H)}
+    ${descuentoHTML(d,H)}
+    <label><input id="e-siniva" type="checkbox" ${d.sinIva?"checked":""}> Sin IVA</label>
+    <label><input id="e-llevaant" type="checkbox" ${d.llevaAnt||+d.anticipo?"checked":""}> Lleva anticipo</label>
+    ${d.llevaAnt||+d.anticipo?`<label>Monto $<input id="e-anticipo" type="number" min="0" step="any" value="${+d.anticipo||""}" style="width:110px" placeholder="0"></label>`:""}
+  </div>
+  <div class="tot-row"><div id="util">${utilHTML(d)}</div><div class="totals" id="totals">${totalsHTML(d)}</div></div>
+  <div id="errs" class="err-list"></div>
+  <div class="actions">
+    ${S.canWrite&&!H?`<button class="primary" id="save">${isNew?"Guardar cotización":"Guardar cambios"}</button>`:""}
+    <button id="pdf" ${isNew?"disabled title='Guarda primero para asignar el folio'":""}>⬇ PDF</button>
+    <button id="pdf-sp" ${isNew?"disabled":""} ${integra?'class="primary"':""}>⬇ PDF sin precio</button>
+    ${!isNew&&!H?waButton(d,d.estado==="aprobada"?"lista":(d.enviada?"seguimiento":"envio")):""}
+    ${!isNew?`<button id="dup">Duplicar como nueva</button>`:""}
+  </div>
+  ${d.creadoPor?`<div class="phone">Elaboró: ${esc(d.creadoPor)}${d.modPor&&d.modPor!==d.creadoPor?" · Último cambio: "+esc(d.modPor):""}</div>`:""}
+  ${!isNew&&!H&&waNumber(d.tel)?`<div class="phone">WhatsApp: +${esc(waNumber(d.tel))}${d.enviada?" · Enviada "+dmy(d.enviada.slice(0,10)):""}${(d.seg||[]).length?" · "+d.seg.length+" seguimiento(s)":""}</div>`:""}
+  </div>
+  <datalist id="dl-cat">${S.cat.slice(0,1200).map(c=>`<option value="${esc(c.d)}">${esc(c.u)} · ${money(c.p)}</option>`).join("")}</datalist>
+  <datalist id="dl-cl">${S.cl.map(c=>`<option value="${esc(c.n)}">${c.cred?"Crédito":"Particular"}${c.tel?" · "+esc(c.tel):""}</option>`).join("")}</datalist>
+  <datalist id="dl-marcas">${marcasConocidas().map(m=>`<option value="${esc(m)}">`).join("")}</datalist>
+  <datalist id="dl-socios">${[...new Set([...S.quotes.values()].map(q=>q.socio).filter(Boolean))].map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
+  <datalist id="dl-raz">${[...new Set(["ESGES","CONTRY CLUB","TIENDA GES","TRANSPORTE INVANCAR"].concat([...S.quotes.values()].map(q=>q.facturarA).filter(Boolean)))].map(r=>`<option value="${esc(r)}">`).join("")}</datalist>
+  <datalist id="dl-vh">${S.vh.map(v=>`<option value="${esc(v.pl)}">${esc([v.mo,v.a,v.cl].filter(Boolean).join(" · "))}</option>`).join("")}</datalist>`;
+  app.innerHTML=html;bindSheet();
+  if(H)app.querySelectorAll(".datos input,.datos select,table.it input,table.it select,.opts input,#add-row,[data-del]").forEach(e=>e.disabled=true);
+}
+/* utilidad estimada (interna): lo que se cobra sin IVA menos el costo de proveedor sin IVA.
+   Mano de obra y servicios sin costo cuentan como ganancia completa; refacciones sin costo capturado se dejan fuera. */
+function utilidad(d){
+  const t=tarifaDe(d);const f=1-(+d.desc||0)/100;let ing=0,cos=0,ingMO=0,sinCosto=0;
+  for(const it of d.items||[]){if(!String(it.d||"").trim())continue;const venta=(+it.c||0)*(+it.p||0)*f;
+    if(+it.costo>0){ing+=venta;cos+=(+it.c||0)*(estiloPMC(d)?+it.costo:+it.costo/1.16)}
+    else if(!needsBrand(it)){ingMO+=venta}
+    else sinCosto++;}
+  const total=ing+ingMO,u=total-cos;
+  return {u,pct:total>0?u/total*100:null,uRef:ing-cos,pctRef:ing>0?(ing-cos)/ing*100:null,ingMO,sinCosto,conCosto:ing>0};
+}
+const utilBaja=q=>{if(hist(q))return false;const u=utilidad(q);return u.pct!=null&&(u.conCosto||u.ingMO>0)&&u.pct<(+S.tar.utilMin||0)&&!q.autorizada};
+function utilHTML(d){
+  const u=utilidad(d);
+  if(!S.isOwner){const low=u.pct!=null&&u.pct<(+S.tar.utilMin||0);return low?`<div class="util low"><div class="u-warn">Esta cotización queda por debajo de la utilidad mínima. ${d.autorizada?"✓ Autorizada por el gerente.":"Necesita autorización del gerente antes de enviarse."}</div></div>`:""}
+  if(u.pct==null)return `<div class="util"><b>Utilidad estimada</b> <span class="muted">· aparece al capturar costos o mano de obra</span></div>`;
+  const low=u.pct<(+S.tar.utilMin||0);
+  return `<div class="util ${low?"low":""}"><div><b>Utilidad estimada</b> <span class="muted">(solo interno, no sale en el PDF)</span></div>
+    <div class="u-big">${money(u.u)} · ${u.pct.toFixed(1)}%</div>
+    <div class="hint">${u.conCosto?`Refacciones: ${money(u.uRef)} (${u.pctRef.toFixed(1)}%)`:"Refacciones: sin costo capturado"} · Mano de obra y servicios: ${money(u.ingMO)}${u.sinCosto?` · <b>${u.sinCosto} refacción(es) sin costo</b> no se cuentan`:""}</div>
+    ${low?`<div class="u-warn">Está por debajo del mínimo de ${S.tar.utilMin}%. ${d.autorizada?"✓ Autorizada por el gerente.":(S.isOwner&&d.folio?`<button id="autorizar">Autorizar de todos modos</button>`:"Necesita autorización del gerente.")}</div>`:""}</div>`;
+}
+function bindAutorizar(d){const b=$("#autorizar");if(b)b.onclick=async()=>{d.autorizada=true;await patch(d.folio,{autorizada:true});const u=$("#util");if(u)u.innerHTML=utilHTML(d)}}
+/* descuentos: solo uno por cotización */
+const DESC_NOM={socio:"Descuento de socio",sabado:"Promoción de sábado",efectivo:"Pago en efectivo",otro:"Otro descuento"};
+const esSabado=fecha=>!!fecha&&new Date(fecha+"T12:00:00").getDay()===6;
+function descTipoDe(d){if(d.descTipo)return d.descTipo;if(d.socio!=null)return "socio";return +d.desc?"otro":"ninguno"}
+function elegible(d,tipo){const t=tarifaDe(d);
+  if(tipo==="sabado"){if(!["particular","pmc"].includes(t))return "Solo para particulares y PMC";if(!esSabado(d.fecha))return "Solo cuando la fecha de emisión es sábado";return ""}
+  if(tipo==="efectivo"){if(t!=="particular")return "Solo para clientes particulares";if(d.factura===true)return "No aplica si el cliente requiere factura";if(d.factura!==false)return "Primero pregunta si requiere factura";return ""}
+  return ""}
+function aplicarDescuento(d,tipo){const was=descTipoDe(d);
+  if(tipo==="efectivo")d.sinIva=true;else if(was==="efectivo"&&tarifaDe(d)!=="pmc")d.sinIva=false;
+  d.descTipo=tipo==="ninguno"?null:tipo;d.socio=tipo==="socio"?(d.socio||""):null;
+  d.desc=tipo==="socio"?+S.tar.socio:tipo==="sabado"?+S.tar.sabado:tipo==="efectivo"?+S.tar.efectivo:tipo==="otro"?(+d.desc||0):0}
+function revisarDescuento(d){const tipo=descTipoDe(d);if(tipo==="ninguno"||tipo==="otro"||tipo==="socio")return;const why=elegible(d,tipo);
+  if(why){aplicarDescuento(d,"ninguno");toast("Se quitó "+DESC_NOM[tipo].toLowerCase()+": "+why.toLowerCase()+".")}}
+const leyendaEfectivo=d=>{if(descTipoDe(d)!=="efectivo")return "";const ym=(d.fecha||todayISO()).slice(0,7);
+  return `Descuento del ${+d.desc}% válido durante el mes de emisión de esta cotización (${MESES[+ym.slice(5)-1].toLowerCase()} de ${ym.slice(0,4)}) y aplica únicamente a pagos en efectivo.`};
+function facturaHTML(d,H){if(tarifaDe(d)!=="particular")return "";const dis=H?"disabled":"";
+  return `<fieldset class="descs fact ${d.factura==null?"pend":""}" ${dis}><legend>¿El cliente requiere factura? <span class="hint">(pregúntale siempre)</span></legend>
+    <label class="dopt"><input type="radio" name="factura" value="si" ${d.factura===true?"checked":""}> Sí, con factura</label>
+    <label class="dopt"><input type="radio" name="factura" value="no" ${d.factura===false?"checked":""}> No requiere factura</label>
+    <span class="hint">${d.factura===true?"Se desglosa IVA. El descuento en efectivo no aplica.":d.factura===false?"Puedes ofrecerle el descuento por pago en efectivo.":""}</span></fieldset>`}
+function descuentoHTML(d,H){const cur=descTipoDe(d);const dis=H?"disabled":"";
+  const opt=(v,txt)=>{const why=v==="ninguno"?"":elegible(d,v);return `<label class="dopt ${why?"off":""}" title="${esc(why)}"><input type="radio" name="desc-tipo" value="${v}" ${cur===v?"checked":""} ${why||H?"disabled":""}> ${txt}${why?`<small>${esc(why)}</small>`:""}</label>`};
+  return `<fieldset class="descs" ${dis}><legend>Descuento <span class="hint">(solo uno por cotización)</span></legend>
+    ${opt("ninguno","Sin descuento")}${opt("sabado",`Sábado ${S.tar.sabado}%`)}${opt("efectivo",`Efectivo ${S.tar.efectivo}%`)}${opt("socio",`Socio ${S.tar.socio}%`)}${opt("otro","Otro")}
+    ${cur==="socio"?`<label class="dopt">Recomendado por <input id="e-socio-n" list="dl-socios" value="${esc(d.socio||"")}" placeholder="Nombre del socio" style="width:180px"></label>`:""}
+    ${cur==="efectivo"?`<div class="hint" style="flex-basis:100%">El PDF llevará al pie: “${esc(leyendaEfectivo(d))}”</div>`:""}
+    ${cur==="otro"?`<label class="dopt"><input id="e-desc-otro" type="number" min="0" max="100" step="1" value="${esc(d.desc||0)}" style="width:70px"> %</label>`:""}
+  </fieldset>`}
+function recalcPrecios(d,prevT){revisarDescuento(d);const t=tarifaDe(d);if(estiloPMC(d))d.sinIva=true;else if(prevT==="pmc")d.sinIva=false;for(const it of d.items){if(it._pManual)continue;if(+it.costo>0)it.p=precioCot(it.costo,d);else if(esMO(it))it.p=moDe(t)}}
+function needsBrand(it){return !(it.u==="SERV"||esServicio(it))}
+const MARCAS_BASE=["MOTORCRAFT","GONHER","STP","FRAM","NGK","BOSCH","LTH","VALUCRAFT","THOMSON","HELLA","MONROE","KYB","TKM","YOKOMITSU","ACDELCO","CHAMPION","WAGNER","BREMBO","GATES","DAYCO","SKF","TIMKEN","MOOG","SYD","DENSO","MOBIL","CASTROL","QUAKER STATE","AKRON","INTERFIL","WIX","MANN","FRITEC","DUSSAN","RAYBESTOS","FEDERAL MOGUL","OEM","GENUINO"];
+function marcasConocidas(){const s=new Set(MARCAS_BASE);for(const c of S.cat)if(c.m)s.add(c.m);for(const q of S.quotes.values())for(const i of q.items||[])if(i.m)s.add(i.m);return [...s].sort()}
+const fullDesc=it=>{const d=String(it.d||"").toUpperCase(),m=String(it.m||"").trim().toUpperCase();return m&&!norm(d).includes(norm(m))?d+" "+m:d};
+function totalsHTML(d){setTimeout(()=>{const u=$("#util");if(u&&S.draft===d){u.innerHTML=utilHTML(d);bindAutorizar(d)}},0);const t=calc(d);return `<div>SUBTOTAL</div><div class="num">${money(t.sub)}</div>
+  ${+d.desc?`<div>${+d.desc}% DESCUENTO</div><div class="num">-${money(t.desc)}</div>`:""}
+  <div>IVA</div><div class="num">${d.sinIva?"—":money(t.iva)}</div><div class="t">TOTAL</div><div class="num t">${money(t.total)}</div>
+  ${+d.anticipo?`<div>ANTICIPO</div><div class="num">-${money(d.anticipo)}</div><div class="t">SALDO TOTAL</div><div class="num t">${money(t.total-d.anticipo)}</div>`:""}`}
+
+function bindSheet(){
+  const d=S.draft;const app=$("#app");
+  const up=s=>String(s||"").toUpperCase();
+  const map={"e-cliente":"cliente","e-tel":"tel","e-anio":"anio","e-marca":"marca","e-modelo":"modelo","e-placa":"placa","e-km":"km","e-fecha":"fecha","e-tipo":"tipoServ","e-concepto":"concepto","e-notas":"notas","e-facturar":"facturarA","e-orden":"orden","e-resp":"responsable"};
+  for(const [id,k] of Object.entries(map)){const el=$("#"+id);if(!el)continue;
+    el.addEventListener("input",()=>{d[k]=(k==="concepto"||k==="notas"||k==="fecha"||k==="tel")?el.value:up(el.value)});}
+  $("#e-cred").onchange=e=>d.credito=e.target.checked;
+  $("#e-placa").addEventListener("change",e=>{const v=S.vhIdx&&S.vhIdx.get(norm(e.target.value));if(!v)return;
+    d.placa=v.pl;if(!d.anio)d.anio=v.a;if(!d.marca)d.marca=v.ma;if(!d.modelo)d.modelo=v.mo;if(!d.cliente&&v.cl){d.cliente=v.cl;const c=S.clIdx&&S.clIdx.get(norm(v.cl));if(c){if(!d.tel)d.tel=c.tel;d.credito=!!c.cred}}
+    renderSheet();toast("Datos del vehículo llenados desde cotizaciones anteriores")});
+  $("#e-cliente").addEventListener("change",e=>{const pv=tarifaDe(d);const c=S.clIdx&&S.clIdx.get(norm(e.target.value));if(c){d.cliente=c.n;if(!d.tel)d.tel=c.tel;d.credito=!!c.cred}else d.cliente=e.target.value.toUpperCase();d.tarifa=null;recalcPrecios(d,pv);renderSheet()});
+  $("#e-cred").addEventListener("change",()=>{const pv=tarifaDe(d);d.tarifa=null;recalcPrecios(d,pv);renderSheet()});
+  $("#e-tipo").onchange=e=>d.tipoServ=e.target.value;
+  $("#e-tarifa").onchange=e=>{const pv=tarifaDe(d);d.tarifa=e.target.value;recalcPrecios(d,pv);renderSheet();toast("Precios recalculados con "+TAR_NOM[d.tarifa]+" · "+S.tar[d.tarifa]+"%")};
+  document.querySelectorAll('input[name=serie]').forEach(r=>r.onchange=e=>{d.serie=e.target.value;if(["CORRECTIVO","PREVENTIVO"].includes(d.tipoServ))d.tipoServ=d.serie==="P"?"PREVENTIVO":"CORRECTIVO";renderSheet()});
+  app.querySelectorAll("table.it [data-k]").forEach(el=>{
+    const k=+el.dataset.k,f=el.dataset.f;
+    el.addEventListener("input",()=>{let v=el.value;if(f==="c"||f==="p"||f==="costo")v=v===""?0:+v;if(f==="d")v=v.toUpperCase();d.items[k][f]=v;
+      const row=el.closest("tr");const setP=x=>{d.items[k].p=x;row.querySelector('[data-f=p]').value=x};
+      if(f==="costo"){d.items[k]._pManual=false;if(v>0)setP(precioCot(v,d))}
+      if(f==="d"&&esMO(d.items[k])&&!d.items[k]._pManual){d.items[k].u="SERV";row.querySelector('[data-f=u]').value="SERV";setP(moDe(tarifaDe(d)))}
+      if(f==="d"||f==="m"){const it=d.items[k];const c=S.catIdx&&(S.catIdx.get(norm(it.d+" "+(it.m||"")))||S.catIdx.get(norm(it.d)));
+        if(c&&!it._pManual&&!esMO(it)){const t=tarifaDe(d);let pr;
+          if(c.co>0){it.costo=c.co;row.querySelector('[data-f=costo]').value=c.co;pr=precioCot(c.co,d)}
+          else pr=(c.pt&&c.pt[t])||c.p;
+          it.u=c.u;setP(pr);if(f==="d"&&c.m&&!it.m){it.m=c.m;row.querySelector('[data-f=m]').value=c.m}row.querySelector('[data-f=u]').value=c.u}
+        if(f==="m")it.m=v;}
+      if(f==="p")d.items[k]._pManual=true;
+      $("#imp-"+k).textContent=money((+d.items[k].c||0)*(+d.items[k].p||0));$("#totals").innerHTML=totalsHTML(d)});
+    if(f==="u")el.addEventListener("change",()=>d.items[k].u=el.value);
+  });
+  $("#add-row").onclick=()=>{d.items.push({c:1,u:"PZA",d:"",p:0});renderSheet();const all=app.querySelectorAll("input.desc");all[all.length-1].focus()};
+  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{d.items.splice(+b.dataset.del,1);if(!d.items.length)d.items.push({c:1,u:"PZA",d:"",p:0});renderSheet()});
+  document.querySelectorAll('input[name=factura]').forEach(r=>r.onchange=e=>{d.factura=e.target.value==="si";revisarDescuento(d);recalcPrecios(d);renderSheet()});
+  document.querySelectorAll('input[name=desc-tipo]').forEach(r=>r.onchange=e=>{const was=descTipoDe(d);aplicarDescuento(d,e.target.value);if(was==="efectivo"||e.target.value==="efectivo"){recalcPrecios(d);toast(e.target.value==="efectivo"?"Pago en efectivo: precios calculados como PMC y sin IVA desglosado":"Precios recalculados con IVA desglosado")}renderSheet();const n=$("#e-socio-n")||$("#e-desc-otro");if(n)n.focus()});
+  const sn=$("#e-socio-n");if(sn)sn.oninput=e=>d.socio=e.target.value.toUpperCase();
+  const dotro=$("#e-desc-otro");if(dotro)dotro.oninput=e=>{d.desc=Math.max(0,Math.min(100,+e.target.value||0));$("#totals").innerHTML=totalsHTML(d)};
+  $("#e-fecha").addEventListener("change",()=>{revisarDescuento(d);renderSheet()});
+  $("#e-siniva").onchange=e=>{d.sinIva=e.target.checked;$("#totals").innerHTML=totalsHTML(d)};
+  $("#e-llevaant").onchange=e=>{d.llevaAnt=e.target.checked;if(!d.llevaAnt)d.anticipo=0;renderSheet();const a=$("#e-anticipo");if(a)a.focus()};
+  const ant=$("#e-anticipo");if(ant)ant.oninput=e=>{d.anticipo=Math.max(0,+e.target.value||0);$("#totals").innerHTML=totalsHTML(d)};
+  const sv=$("#save");if(sv)sv.onclick=save;
+  $("#pdf").onclick=()=>downloadPDF(d,false);
+  $("#pdf-sp").onclick=()=>downloadPDF(d,true);
+  const dup=$("#dup");if(dup)dup.onclick=()=>{S.draft=newDraft(d);S.editing=null;history.replaceState(null,"","#nueva");render();toast("Copia lista: ajusta y guarda para darle folio nuevo")};
+  app.querySelectorAll("[data-set]").forEach(b=>b.onclick=async()=>{const f=b.dataset.f;
+    if(b.dataset.set==="rechazada"){S.rejectOpen=S.rejectOpen===f?null:f;renderSheet();return}
+    S.rejectOpen=null;d.estado=b.dataset.set;d.motivo="";await patch(f,{estado:d.estado,motivo:""});renderSheet()});
+  app.querySelectorAll("[data-motivo]").forEach(b=>b.onclick=async()=>{S.rejectOpen=null;d.estado="rechazada";d.motivo=b.dataset.motivo;await patch(b.dataset.f,{estado:"rechazada",motivo:d.motivo});renderSheet()});
+  app.querySelectorAll("[data-wa]").forEach(a=>a.addEventListener("click",()=>{markContact(a.dataset.f,a.dataset.wa);if(a.dataset.wa==="envio")d.enviada=new Date().toISOString()}));
+}
+
+function validate(d){
+  const e=[];
+  if(!d.cliente.trim())e.push("Falta el nombre del cliente.");
+  if(!waNumber(d.tel))e.push("Falta el celular del cliente (10 dígitos). Sin él no se puede dar seguimiento por WhatsApp.");
+  if(!d.items.some(i=>String(i.d).trim()))e.push("Agrega al menos una refacción o servicio.");
+  if(tarifaDe(d)==="particular"&&d.factura==null)e.push("Pregúntale al cliente si requiere factura y márcalo antes de guardar.");
+  const dt=descTipoDe(d);
+  if(dt==="socio"&&!String(d.socio||"").trim())e.push("Escribe qué socio recomendó al cliente (descuento de socio).");
+  if(dt==="sabado"||dt==="efectivo"){const why=elegible(d,dt);if(why)e.push(DESC_NOM[dt]+": "+why+".")}
+  if(d.items.some(i=>String(i.d).trim()&&!(+i.c>0)))e.push("Hay renglones con cantidad en cero.");
+  const sinMarca=d.items.filter(i=>String(i.d).trim()&&needsBrand(i)&&!String(i.m||"").trim());
+  if(sinMarca.length)e.push("Falta la marca en: "+sinMarca.map(i=>i.d).join(", ")+". La marca es obligatoria en todas las refacciones (en servicios y mano de obra no aplica).");
+  return e;
+}
+async function save(){
+  const d=S.draft;const errs=validate(d);
+  if(errs.length){S.showErr=true;renderSheet();$("#errs").innerHTML=errs.map(esc).join("<br>");$("#errs").scrollIntoView({block:"center"});return}
+  S.showErr=false;
+  const btn=$("#save");btn.disabled=true;btn.textContent="Guardando…";
+  try{
+    d.items=d.items.filter(i=>String(i.d).trim()).map(i=>({c:+i.c,u:i.u,d:String(i.d).trim().toUpperCase(),m:String(i.m||"").trim().toUpperCase(),p:Math.round((+i.p||0)*100)/100,costo:+i.costo||0}));
+    d.tarifa=tarifaDe(d);
+    if(!d.concepto.trim())d.concepto=d.items.filter(i=>!/MANO DE OBRA/.test(i.d)).map(i=>i.d.charAt(0)+i.d.slice(1).toLowerCase()).join(", ").slice(0,90);
+    const now=new Date().toISOString();
+    if(!d.folio){
+      const n=await nextFolio(d.serie);
+      d.num=n;d.folio="QM-COT-"+n+(d.serie==="P"?"A":"");d.creado=now;if(window.QM_NOMBRE)d.creadoPor=window.QM_NOMBRE();
+    }
+    if(d.autorizada&&!utilBaja({...d,autorizada:false}))d.autorizada=false;
+    d.mod=now;if(window.QM_NOMBRE)d.modPor=window.QM_NOMBRE();
+    const body=JSON.parse(JSON.stringify(d));
+    await S.db.doc("cot/"+d.folio).set(body);
+    S.quotes.set(d.folio,body);
+    await learn(body);
+    toast("Guardada como "+d.folio);
+    S.editing=d.folio;history.replaceState(null,"","#editar-"+d.folio);render();
+  }catch(e){toast("No se pudo guardar ("+(e.code||e.message||"error")+"). Intenta de nuevo.");btn.disabled=false;btn.textContent="Guardar cotización"}
+}
+async function nextFolio(serie){
+  if(S.db.nextFolio)return S.db.nextFolio(serie); // versión independiente (Supabase): folio atómico en el servidor
+  const ref=S.db.doc("cfg/folios");
+  for(let i=0;i<8;i++){
+    const r=await ref.acquire({holder:tabId,ttlMs:6000});
+    if(r.acquired){const s=await ref.get();const cur=(s.data()||{})[serie]||0;const n=cur+1;await ref.update({[serie]:n});return n}
+    await new Promise(res=>setTimeout(res,700+Math.random()*600));
+  }
+  throw {code:"folio_ocupado",message:"Otra persona está guardando. Intenta en un momento."};
+}
+/* el catálogo aprende precios, clientes y vehículos de cada cotización guardada */
+async function learn(q){
+  try{
+    const cat=S.cat.slice();const idx=new Map(cat.map((c,i)=>[norm(c.d),i]));let ch=false;
+    for(const it of q.items){if(!(it.p>0))continue;const k=norm(it.d+" "+(it.m||""));const i=idx.has(k)?idx.get(k):(it.m?undefined:idx.get(norm(it.d)));
+      const t=q.tarifa||"particular";
+      if(i==null){cat.unshift({d:it.d,m:it.m||"",u:it.u,p:it.p,n:1,pt:{[t]:it.p},...(it.costo>0?{co:it.costo}:{})});[...idx.keys()].forEach(x=>idx.set(x,idx.get(x)+1));idx.set(k,0);ch=true}
+      else{const o=cat[i];const pt={...(o.pt||{}),[t]:it.p};if(o.p!==it.p||o.u!==it.u||(o.pt||{})[t]!==it.p||(it.costo>0&&o.co!==it.costo)){cat[i]={...o,p:it.p,u:it.u,pt,n:(o.n||0)+1,...(it.costo>0?{co:it.costo}:{})};ch=true}}}
+    if(ch)await S.db.doc("cat/refacciones").set({items:cat});
+    const cl=S.cl.slice();const ci=cl.findIndex(c=>norm(c.n)===norm(q.cliente));
+    const ce={n:q.cliente,tel:q.tel,cred:!!q.credito};
+    if(ci<0||cl[ci].tel!==ce.tel||!!cl[ci].cred!==ce.cred){if(ci<0)cl.push(ce);else cl[ci]=ce;await S.db.doc("cat/clientes").set({items:cl})}
+    if(q.placa&&q.placa.length>=5){const vh=S.vh.slice();const vi=vh.findIndex(v=>norm(v.pl)===norm(q.placa));
+      const ve={pl:q.placa,a:q.anio,ma:q.marca,mo:q.modelo,km:q.km,cl:q.cliente};
+      if(vi<0)vh.push(ve);else vh[vi]=ve;await S.db.doc("cat/vehiculos").set({items:vh})}
+  }catch(e){/* el catálogo es una ayuda; si falla no bloquea la cotización */}
+}
+
+/* ---------- PDF idéntico al formato de Excel ---------- */
+const ASSETS={};
+async function loadAssets(){
+  if(ASSETS.ok)return;
+  const b64=async u=>{const r=await fetch(u);if(!r.ok)throw new Error(u);const a=new Uint8Array(await r.arrayBuffer());let s="";for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)};
+  const [r,b,logo,wm]=await Promise.all([b64("carlito-r.ttf"),b64("carlito-b.ttf"),b64("logo.png"),b64("marca-agua.png")]);
+  Object.assign(ASSETS,{r,b,logo:"data:image/png;base64,"+logo,wm:"data:image/png;base64,"+wm,ok:true});
+}
+async function buildPDF(q,sinPrecio){
+  await loadAssets();
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:"pt",format:"letter"});
+  // el formato original de Excel imprime con la hoja desplazada 8.39 pt a la derecha y hacia abajo
+  const OX=8.39,OY=8.39;
+  const _t=doc.text.bind(doc),_r=doc.rect.bind(doc),_l=doc.line.bind(doc),_i=doc.addImage.bind(doc);
+  doc.text=(s,x,y,o)=>_t(s,x+OX,y+OY,o);doc.rect=(x,y,w,h,st)=>_r(x+OX,y+OY,w,h,st);
+  doc.line=(a,b,c,d)=>_l(a+OX,b+OY,c+OX,d+OY);doc.addImage=(d,f,x,y,w,h)=>_i(d,f,x+OX,y+OY,w,h);
+  doc.addFileToVFS("Carlito-Regular.ttf",ASSETS.r);doc.addFont("Carlito-Regular.ttf","Calibri","normal");
+  doc.addFileToVFS("Carlito-Bold.ttf",ASSETS.b);doc.addFont("Carlito-Bold.ttf","Calibri","bold");
+  const BLUE=[12,118,158],G1=191,G2=166;
+  const X0=29.4,X3=547,XL=28.4,C1=84.8,C2=145.7,C3=373.4,C4=442.4,C5=546.4;
+  const t=calc(q);
+  const cal=(w,s)=>{doc.setFont("Calibri",w);doc.setFontSize(s)};
+  const ari=(s)=>{doc.setFont("helvetica","bold");doc.setFontSize(s)};
+  const line=(x1,y1,x2,y2)=>{doc.setDrawColor(0);doc.setLineWidth(0.9);doc.line(x1,y1,x2,y2)};
+  // tabla de partidas: renglones
+  const RB=q.items.length>10?16:16.8; // con muchas partidas los renglones van más juntos, como en sus hojas
+  const rowsData=q.items.map(it=>{cal("bold",9.7);const lines=doc.splitTextToSize(fullDesc(it),222);return {it,lines,h:RB+Math.max(0,lines.length-1)*12.7}});
+  const pages=[];let cur=[],y=261,LIMIT=600;
+  for(const r of rowsData){if(y+r.h>LIMIT&&cur.length){pages.push(cur);cur=[];y=261}cur.push(r);y+=r.h}
+  pages.push(cur);
+  pages.forEach((rows,pi)=>{
+    if(pi>0)doc.addPage();
+    const last=pi===pages.length-1;
+    doc.addImage(ASSETS.logo,"PNG",28,28,145,61);
+    ari(7.8);doc.setTextColor(0);
+    ["QUARTA MARCHIA","A.V Ruiz Cortines Local 1 Col. Ah-Kim Pech.","San Francisco de Campeche, Campeche","quartamarchia@gmail.com","Tel: 981 206 8402"].forEach((s,i)=>doc.text(s,567.8,37+i*10.2,{align:"right"}));
+    doc.setFillColor(...BLUE);doc.rect(X0,97.4,517.6,13,"F");
+    // datos
+    const T=118.7,RH=13.3;
+    doc.setFillColor(G1);doc.rect(X0,T,C2-X0,RH*8,"F");
+    [[0,1],[1,1],[3,1],[5,2]].forEach(([r,n])=>doc.rect(C3,T+r*RH,X3-C3,RH*n,"F"));
+    doc.setGState(new doc.GState({opacity:0.05}));doc.addImage(ASSETS.wm,"PNG",90,305,423,164);doc.setGState(new doc.GState({opacity:1}));
+    for(let r=0;r<=8;r++){line(XL,T+r*RH,X3,T+r*RH)}
+    doc.setFillColor(G1);doc.rect(C3+0.5,T+6*RH-0.6,X3-C3-1,1.2,"F"); // celda combinada TIPO DE SERVICIO
+    [XL+0.5,C2,C3,X3-0.5].forEach(x=>line(x,T,x,T+8*RH));
+    const by=r=>T+r*RH+9.6;
+    cal("bold",9.7);
+    ["LUGAR DE EXPEDICIÓN:","CLIENTE:","TELEFONO:","AÑO:","MARCA:","MODELO:","PLACA:","FOLIO:"].forEach((s,i)=>doc.text(s,30.7,by(i)));
+    cal("normal",9.7);doc.text("24014-Campeche, Campeche",152.3,by(0));
+    cal("bold",9.7);const mid=(C2+C3)/2;
+    [q.cliente,q.tel,q.anio,q.marca,q.modelo,q.placa,q.folio].forEach((s,i)=>doc.text(String(s||"").toUpperCase(),mid,by(i+1),{align:"center"}));
+    const rc=(C3+X3)/2;
+    cal("bold",9.7);const wm1=doc.getTextWidth("MONEDA:  ");cal("normal",9.7);const wm2=doc.getTextWidth("MXN-Peso Mexico");
+    let sx=rc-(wm1+wm2)/2;cal("bold",9.7);doc.text("MONEDA:",sx,by(0));cal("normal",9.7);doc.text("MXN-Peso Mexico",sx+wm1,by(0));
+    cal("bold",9.7);
+    doc.text("KILOMETRAJE:",rc,by(1),{align:"center"});
+    const km=String(q.km||"").replace(/\D/g,"");doc.text(km?(+km).toLocaleString("en-US")+" KM":"",rc,by(2),{align:"center"});
+    doc.text("FECHA DE EMISIÓN",rc,by(3),{align:"center"});
+    doc.text(dmy(q.fecha),rc,by(4),{align:"center"});
+    doc.text("TIPO DE SERVICIO",rc,T+6*RH+3.4,{align:"center"});
+    doc.text(String(q.tipoServ||"").toUpperCase(),rc,by(7),{align:"center"});
+    doc.text("COTIZACIÓN",(XL+X3)/2,245,{align:"center"});
+    // encabezado partidas
+    doc.setFillColor(G2);doc.rect(X0,247.4,517.6,13.4,"F");
+    line(XL,246.9,X3,246.9);line(XL,260.8,X3,260.8);
+    [["CANTIDAD",XL,C1],["UNIDAD",C1,C2],["DESCRIPCIÓN",C2,C3],["P.UNITARIO",C3,C4],["IMPORTE",C4,C5]].forEach(([s,a,b])=>doc.text(s,(a+b)/2,257.2,{align:"center"}));
+    const bottom=606.1;
+    [XL+0.5,C1,C2].forEach(x=>line(x,246.9,x,bottom));
+    line(C4,246.9,C4,bottom);
+    [C3,C5].forEach(x=>line(x,246.9,x,last?(bottom+(3+(+q.desc?1:0)+(+q.anticipo?2:0))*13.3):bottom));
+    line(XL,bottom,C5,bottom);
+    // renglones
+    let yy=261;
+    for(const r of rows){
+      const midY=yy+r.h/2+3.4;
+      cal("bold",9.7);
+      doc.text(String(+r.it.c),(XL+C1)/2,midY,{align:"center"});
+      doc.text(String(r.it.u||""),(C1+C2)/2,midY,{align:"center"});
+      r.lines.forEach((ln,i)=>doc.text(ln,148,yy+(RB/2+3.4)+i*12.7-(r.lines.length>1?6.35*(r.lines.length-1):0)+(r.lines.length>1?(r.h-RB)/2:0)));
+      if(!sinPrecio){
+        doc.text("$",378.7,midY);doc.text(num2(r.it.p),438.4,midY,{align:"right"});
+        doc.text("$",447.7,midY);doc.text(num2((+r.it.c||0)*(+r.it.p||0)),542.4,midY,{align:"right"});
+      }
+      yy+=r.h;
+    }
+    if(last){
+      const tl=[["SUBTOTAL",t.sub]];
+      if(+q.desc)tl.push([(+q.desc)+"% DESCUENTO",-t.desc]);
+      tl.push(["IVA",q.sinIva?null:t.iva],["TOTAL",t.total]);
+      if(+q.anticipo)tl.push(["ANTICIPO",+q.anticipo],["SALDO TOTAL",t.total-q.anticipo]);
+      ari(9.7);
+      tl.forEach(([lab,val],i)=>{const ty=bottom+i*13.3;line(C3,ty+13.3,C5,ty+13.3);
+        doc.text(lab,437.3,ty+10.4,{align:"right"});doc.text("$",448.1,ty+10.4);
+        doc.text(sinPrecio||val===null?"-":(val<0?"-":"")+num2(Math.abs(val)),sinPrecio||val===null?538:542.4,ty+10.4,{align:"right"});});
+    }
+    doc.setFillColor(...BLUE);doc.rect(X0,685.6,517.6,13.4,"F");
+    doc.setFont("helvetica","normal");doc.setFontSize(8.8);doc.text("Precio sujeto a cambio por disponibilidad de Proveedores.",30.7,710);
+    if(last&&leyendaEfectivo(q)){doc.setFont("helvetica","bold");doc.setFontSize(8.8);doc.splitTextToSize(leyendaEfectivo(q),515).forEach((ln,i)=>doc.text(ln,30.7,722+i*11))}
+  });
+  return doc;
+}
+function pdfName(q,sp){return ("COT-"+q.folio.replace("QM-COT-","")+" "+[q.modelo,q.anio,q.placa].filter(Boolean).join(" ")+(sp?" SIN PRECIO":"")).replace(/[\\/:*?"<>|]+/g,"-").trim()+".pdf"}
+async function downloadPDF(q,sp){
+  if(!q.folio){toast("Guarda la cotización primero para que tenga folio.");return}
+  try{
+    const doc=await buildPDF(q,sp);const blob=doc.output("blob");
+    if(!S.dl){toast("Esta vista no permite descargar archivos.");return}
+    await S.dl.save({filename:pdfName(q,sp),data:blob});
+  }catch(e){if(e&&e.code==="declined")return;toast(e&&e.code==="rate_limited"?"Ya hay una descarga abierta; espera un momento.":"No se pudo generar el PDF ("+(e.code||e.message||"error")+").")}
+}
+window.__qm={buildPDF,calc,waText}; // usado solo para pruebas
+route();
+</script>
+
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+</body></html>
