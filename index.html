@@ -688,6 +688,8 @@ async function aplDoc(marca){const mk0=norm(marca);const mk=({VW:"VOLKSWAGEN",VO
   return S.apl[slug]=out.length?out:null}
 const APL_POS=["DELANTER","TRASER","SUPERIOR","INFERIOR","IZQUIERD","DERECH","INTERIOR","EXTERIOR"];
 
+const APL_OPU={DELAN:/TRASER/,TRASE:/DELANTER/,IZQUI:/DERECH/,DEREC:/IZQUIERD/,SUPER:/INFERIOR/,INFER:/SUPERIOR/,INTER:/EXTERIOR/,EXTER:/INTERIOR/};
+const aplOpuesto=(pos,N)=>pos.some(t=>{const k=Object.keys(APL_OPU).find(x=>t.startsWith(x));return k&&APL_OPU[k].test(N)&&!new RegExp(k).test(N)});
 function aplRangos(N){const out=[];N=String(N).replace(/\b((?:19|20)\d\d)\s+((?:19|20)\d\d)\b/g,(m,a,b)=>+b>=+a&&+b-+a<40?a+"-"+b:m);const re=/\b((?:19|20)\d\d)\s?-\s?((?:19|20)?\d\d)\b|\b(\d\d)\s?-\s?(\d\d)\b|\b((?:19|20)\d\d)\b/g;let m;const f2=(a,b)=>{let x=+a,y=+b;if(b.length===2)y=Math.floor(x/100)*100+y;if(y<x)y+=100;return [x,y]};
   while((m=re.exec(N))){if(m[1])out.push(f2(m[1],m[2]));else if(m[3]){const a=+m[3],b=+m[4];const A=a<=40?2000+a:1900+a,B=b<=40?2000+b:1900+b;if(B>=A&&A>=1950)out.push([A,B])}else if(m[5])out.push([+m[5],+m[5]])}return out}
 function aplBuscarG(doc,d,txt,conAnio){const mo=norm(d.modelo),y=+d.anio||0;if(!mo)return [];const mo1=mo.split(" ")[0];
@@ -699,8 +701,8 @@ function aplBuscarG(doc,d,txt,conAnio){const mo=norm(d.modelo),y=+d.anio||0;if(!
     const N=" "+norm(r[2])+" ";const tieneMo=N.includes(" "+mo+" ")||(mo1.length>=4&&N.includes(" "+mo1+" "));if(!tieneMo)continue;
     const segs=norm(r[2]).split(" / ");const ult=" "+segs[segs.length-1]+" ";const enFila=ult.includes(" "+mo1+" ");
     const rg=aplRangos(String(r[2]));const okY=!y||!rg.length||rg.some(([a,b])=>y>=a&&y<=b);if(conAnio&&!okY)continue;
-    const sc=pos.filter(t=>N.includes(t)).length+(enFila?1.5:0)+(rg.length&&okY?1:0)-(!okY?1:0)+(P.startsWith(prd[0])?2:0);const np=r[1];const e=best.get(np);
-    const rs=String(r[2]).split(" / ");const det=rs[rs.length-1].replace(new RegExp("\\b"+np.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","g"),"").replace(/\s+/g," ").trim().slice(0,80);
+    const sc=pos.filter(t=>N.includes(t)).length+(enFila?2.5:-1)+(rg.length&&okY?1.5:0)-(!okY?1:0)+(P.startsWith(prd[0])?2:0);const np=r[1];const e=best.get(np);
+    if(aplOpuesto(pos,ult))continue;const rs=String(r[2]).split(" / ");const det=rs[rs.length-1].replace(new RegExp("\\b"+np.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","g"),"").replace(/\s+/g," ").trim().slice(0,80);
     if(!e||sc>e.sc)best.set(np,{np,m:doc.c[r[0]][0],sc,src:doc.c[r[0]][1]+" · "+det,veh:mo})}
   return [...best.values()].sort((a,b)=>b.sc-a.sc).slice(0,8)}
 async function aplSugerir(d,txt){const r=await aplBuscar(d,txt,true);if(r.length)return r;return (await aplBuscar(d,txt,false)).map(x=>({...x,src:x.src+" · ⚠ el catálogo no lo marca para "+d.anio+", verifica"}))}
@@ -713,7 +715,7 @@ function aplBuscar1(doc,d,txt,conAnio){const mo=norm(d.modelo),y=+d.anio||0;if(!
   const ok=(t,P,N)=>t==="VARIL"?(/VARILL/.test(P)||(/TERMINAL/.test(P)&&/INTERIOR/.test(N))):t==="PASTI"?/BALATAS DE DISCO/.test(P):t==="ZAPAT"?/TAMBOR/.test(P):t==="GASOL"?/COMBUSTIBLE|GASOLINA/.test(P):t==="AMORT"?/AMORTIGUADOR/.test(P)&&!/BASE|CUBREPOLVO/.test(P):P.includes(t);
   const best=new Map();
   for(const r of doc.r){if(!mods.has(r[0]))continue;if(conAnio&&y&&r[2]&&(y<r[2]||y>r[3]))continue;const P=norm(doc.p[r[1]]),N=norm(r[4]);if(!prd.every(t=>ok(t,P,N)))continue;
-    const sc=pos.filter(t=>N.includes(t)||P.includes(t)).length+(r[2]?1:0)+(P.startsWith(prd[0])?2:0)+0.5-(!conAnio&&y&&r[2]?Math.min(Math.abs(y-r[2]),Math.abs(y-r[3]))/10:0);const k=r[5];const e=best.get(k);
+    if(aplOpuesto(pos,N+" "+P))continue;const sc=pos.filter(t=>N.includes(t)||P.includes(t)).length+(r[2]?1:0)+(P.startsWith(prd[0])?2:0)+0.5-(!conAnio&&y&&r[2]?Math.min(Math.abs(y-r[2]),Math.abs(y-r[3]))/10:0);const k=r[5];const e=best.get(k);
     const lbl=doc.p[r[1]]+(r[4]?" · "+r[4]:"")+(r[2]?" · "+r[2]+(r[3]!==r[2]?"-"+r[3]:""):"");
     if(!e||sc>e.sc)best.set(k,{np:r[5],m:doc.b[r[6]],sc,src:lbl,veh:doc.m[r[0]]})}
   return [...best.values()].sort((a,b)=>b.sc-a.sc).slice(0,8)}
