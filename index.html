@@ -195,6 +195,7 @@ const dmy=iso=>iso?iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4):"";
 const MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DIAS=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 const daysBetween=(a,b)=>Math.floor((new Date(b+"T12:00:00")-new Date(a.slice(0,10)+"T12:00:00"))/864e5);
+const nk=s=>norm(s).replace(/\b(\w+?)(ES|S)\b/g,"$1");
 const norm=s=>String(s||"").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Z0-9Ñ]+/g," ").trim();
 const tabId=Math.random().toString(36).slice(2);
 function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3200)}
@@ -244,7 +245,7 @@ const moDe=t=>t==="ges"?+S.tar.moGes:+S.tar.moOtros;
     render(true);
   },e=>{clearTimeout(timer);S.err="Se perdió la conexión con la base de datos ("+e.code+"). Vuelve a abrir la página.";render()});
   const sub=(path,fn)=>db.doc(path).onSnapshot(s=>{if(s.exists){fn(s.data());render(true)}},()=>{});
-  sub("cat/refacciones",d=>{S.cat=d.items||[];S.catIdx=new Map();for(const i of S.cat){S.catIdx.set(norm(i.d+" "+(i.m||"")),i);if(!S.catIdx.has(norm(i.d)))S.catIdx.set(norm(i.d),i)}});
+  sub("cat/refacciones",d=>{S.cat=d.items||[];S.catIdx=new Map();for(const i of S.cat){S.catIdx.set(nk(i.d+" "+(i.m||"")),i);if(!S.catIdx.has(nk(i.d)))S.catIdx.set(nk(i.d),i)}});
   sub("cat/clientes",d=>{S.cl=d.items||[];S.clIdx=new Map(S.cl.map(i=>[norm(i.n),i]))});
   sub("cat/vehiculos",d=>{S.vh=d.items||[];S.vhIdx=new Map(S.vh.map(i=>[norm(i.pl),i]))});
   sub("cfg/folios",d=>{S.cfg=d});
@@ -414,7 +415,7 @@ function rangoMeses(per){
 const esServicio=r=>r.u==="SERV"||/MANO DE OBRA|BALANCEO|MONTAJE|ALINEACI|RECTIFICAD|NITROGENO|DIAGN|LIMPIEZA|SERVICIO|REVISION|ESCANE|AFINACION|INSTALACION|REPARACION|CAMBIO DE|LAVADO|TRASLADO|GRUA|RESCATE|HOJALATERIA|PINTURA|SOLDADURA|RECARGA|CARGA DE GAS|PROGRAMACION|CALIBRACION|AJUSTE|DESCARBONIZ|PURGADO|SANGRADO|MANTENIMIENTO|VERIFICACION|DESMONTAJE|PULIDO|ENCERADO|TAPICERIA|SUSPENSION COMPLETA/.test(norm(r.d));
 function aggRefacciones(){
   const [a,b]=rangoMeses(S.kat.periodo);const m=new Map();
-  const get=(d,u)=>{const k=norm(d);let e=m.get(k);if(!e){e={d,u,n:0,q:0,qa:0,p:0,f:""};m.set(k,e)}return e};
+  const get=(d,u)=>{const k=nk(d);let e=m.get(k);if(!e){e={d,u,n:0,q:0,qa:0,p:0,f:""};m.set(k,e)}return e};
   for(const it of (S.statR&&S.statR.items)||[]){
     let n=0,q=0;HIST_MESES.forEach((ym,i)=>{if(ym>=a&&ym<=b){n+=it.v[i]||0;q+=it.m[i]||0}});
     if(!n)continue;const e=get(it.d,it.u);e.n+=n;e.q+=q;e.p=it.p;e.f=it.f;
@@ -646,8 +647,8 @@ function ghHist(d){const ma=norm(d.marca),mo=norm(d.modelo),y=+d.anio||0;if(!ma|
   for(const e of Object.values(V)){if(!mismoModelo(ma,mo,norm(e.ma),norm(e.mo)))continue;for(const x of e.it)add(x[0],x[1],"","PZA",x[2],x[3],x[4])}
   for(const q of S.quotes.values()){if(q===d||!mismoModelo(ma,mo,norm(q.marca),norm(q.modelo)))continue;const yy=+q.anio||0;for(const it of q.items||[])if(needsBrand(it)&&String(it.d||"").trim())add(it.d,it.m,it.np,it.u,1,yy,yy)}
   const ya=new Set(d.items.map(i=>norm(i.d)));
-  return [...m.values()].filter(e=>!ya.has(norm(e.d))).map(e=>{if(!e.np){const c=S.catIdx&&S.catIdx.get(norm(e.d+" "+e.m));if(c&&c.np)e.np=c.np}return e}).sort((a,b)=>(b.cerca-a.cerca)||(b.k-a.k)).slice(0,14)}
-function ghAgregar(d,it){const c=(it.np&&S.cat.find(x=>x.np&&norm(x.np)===norm(it.np)))||(S.catIdx&&S.catIdx.get(norm(it.d+" "+(it.m||""))));
+  return [...m.values()].filter(e=>!ya.has(norm(e.d))).map(e=>{if(!e.np){const c=S.catIdx&&S.catIdx.get(nk(e.d+" "+e.m));if(c&&c.np)e.np=c.np}return e}).sort((a,b)=>(b.cerca-a.cerca)||(b.k-a.k)).slice(0,14)}
+function ghAgregar(d,it){const c=(it.np&&S.cat.find(x=>x.np&&norm(x.np)===norm(it.np)))||(S.catIdx&&S.catIdx.get(nk(it.d+" "+(it.m||""))));
   if(c){it.u=c.u||it.u;if(!it.np&&c.np)it.np=c.np;if(!it.m&&c.m)it.m=c.m;if(c.co>0){it.costo=c.co;it.p=precioCot(c.co,d);setTimeout(()=>avisoCosto(c),1800)}else it.p=(c.pt&&c.pt[tarifaDe(d)])||c.p||0}
   const last=d.items[d.items.length-1];if(last&&!String(last.d||"").trim()&&!+last.p)d.items[d.items.length-1]=it;else d.items.push(it);renderSheet();toast("Agregado: "+it.d+(it.np?"":" · falta su número de parte"))}
 function ghAuto(d){if(!d.marca||!d.modelo||!d.anio||String(d.anio).length<4)return;const k=[d.marca,d.modelo,d.anio].map(norm).join("|");if(S.gh&&S.gh.k===k&&S.gh.d===d&&S.gh.open)return;ghAbrir(d)}
@@ -907,7 +908,7 @@ function bindSheet(){
       const row=el.closest("tr");const setP=x=>{d.items[k].p=x;row.querySelector('[data-f=p]').value=x};
       if(f==="costo"){const it=d.items[k];it._pManual=false;if(sinIvaDe(it))it.costo=Math.round(v*1.16*100)/100;if(it.costo>0)setP(precioCot(it.costo,d))}
       if(f==="d"&&esMO(d.items[k])&&!d.items[k]._pManual){d.items[k].u="SERV";row.querySelector('[data-f=u]').value="SERV";setP(moDe(tarifaDe(d)))}
-      if(f==="d"||f==="m"){const it=d.items[k];const c=S.catIdx&&(S.catIdx.get(norm(it.d+" "+(it.m||"")))||S.catIdx.get(norm(it.d)));
+      if(f==="d"||f==="m"){const it=d.items[k];const c=S.catIdx&&(S.catIdx.get(nk(it.d+" "+(it.m||"")))||S.catIdx.get(nk(it.d)));
         if(c&&!it._pManual&&!esMO(it)){const t=tarifaDe(d);let pr;
           if(c.co>0){it.costo=c.co;row.querySelector('[data-f=costo]').value=c.co;pr=precioCot(c.co,d);avisoCosto(c)}
           else pr=(c.pt&&c.pt[t])||c.p;
@@ -994,11 +995,11 @@ async function nextFolio(serie){
 /* el catálogo aprende precios, clientes y vehículos de cada cotización guardada */
 async function learn(q){
   try{
-    const cat=S.cat.slice();const idx=new Map(cat.map((c,i)=>[norm(c.d),i]));let ch=false;
-    for(const it of q.items){if(!(it.p>0))continue;const k=norm(it.d+" "+(it.m||""));const i=idx.has(k)?idx.get(k):(it.m?undefined:idx.get(norm(it.d)));
+    const cat=S.cat.slice();const idx=new Map(cat.map((c,i)=>[nk(c.d),i]));let ch=false;
+    for(const it of q.items){if(!(it.p>0))continue;const k=nk(it.d+" "+(it.m||""));const i=idx.has(k)?idx.get(k):idx.get(nk(it.d));
       const t=q.tarifa||"particular";
       if(i==null){cat.unshift({d:it.d,m:it.m||"",...(it.np?{np:it.np}:{}),u:it.u,p:it.p,n:1,pt:{[t]:it.p},...(it.costo>0?{co:it.costo,cof:q.fecha}:{})});[...idx.keys()].forEach(x=>idx.set(x,idx.get(x)+1));idx.set(k,0);ch=true}
-      else{const o=cat[i];const pt={...(o.pt||{}),[t]:it.p};if(o.p!==it.p||o.u!==it.u||(it.np&&o.np!==it.np)||(o.pt||{})[t]!==it.p||(it.costo>0&&(o.co!==it.costo||o.cof!==q.fecha))){cat[i]={...o,...(it.np?{np:it.np}:{}),p:it.p,u:it.u,pt,n:(o.n||0)+1,...(it.costo>0?{co:it.costo,cof:q.fecha}:{})};ch=true}}}
+      else{const o=cat[i];const pt={...(o.pt||{}),[t]:it.p};if(o.p!==it.p||o.u!==it.u||(it.np&&o.np!==it.np)||(it.m&&o.m!==it.m)||(o.pt||{})[t]!==it.p||(it.costo>0&&(o.co!==it.costo||o.cof!==q.fecha))){cat[i]={...o,...(it.np?{np:it.np}:{}),...(it.m?{m:it.m}:{}),p:it.p,u:it.u,pt,n:(o.n||0)+1,...(it.costo>0?{co:it.costo,cof:q.fecha}:{})};ch=true}}}
     if(ch)await S.db.doc("cat/refacciones").set({items:cat});
     const cl=S.cl.slice();const ci=cl.findIndex(c=>norm(c.n)===norm(q.cliente));
     const ce={n:q.cliente,tel:q.tel,cred:!!q.credito};
