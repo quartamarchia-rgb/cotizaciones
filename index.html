@@ -411,7 +411,7 @@ function rangoMeses(per){
   if(per==="6m")return [add(hoy,-5),hoy];
   return [per,per];
 }
-const esServicio=r=>r.u==="SERV"||/MANO DE OBRA|BALANCEO|MONTAJE|ALINEACI|RECTIFICAD|NITROGENO|DIAGN/.test(norm(r.d));
+const esServicio=r=>r.u==="SERV"||/MANO DE OBRA|BALANCEO|MONTAJE|ALINEACI|RECTIFICAD|NITROGENO|DIAGN|LIMPIEZA|SERVICIO|REVISION|ESCANE|AFINACION|INSTALACION|REPARACION|CAMBIO DE|LAVADO|TRASLADO|GRUA|RESCATE|HOJALATERIA|PINTURA|SOLDADURA|RECARGA|CARGA DE GAS|PROGRAMACION|CALIBRACION|AJUSTE|DESCARBONIZ|PURGADO|SANGRADO|MANTENIMIENTO|VERIFICACION|DESMONTAJE|PULIDO|ENCERADO|TAPICERIA|SUSPENSION COMPLETA/.test(norm(r.d));
 function aggRefacciones(){
   const [a,b]=rangoMeses(S.kat.periodo);const m=new Map();
   const get=(d,u)=>{const k=norm(d);let e=m.get(k);if(!e){e={d,u,n:0,q:0,qa:0,p:0,f:""};m.set(k,e)}return e};
