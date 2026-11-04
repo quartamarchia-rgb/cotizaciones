@@ -103,14 +103,14 @@
   function snap(p){const v=cache.get(p);return {id:p.split("/").pop(),exists:v!==undefined,data:()=>v===undefined?undefined:JSON.parse(JSON.stringify(v)),metadata:{fromCache:!cargado,hasPendingWrites:false}}}
   function avisar(p){if(p==null){docL.forEach(fs=>fs.forEach(f=>f()));colL.forEach(l=>l.fire());return}(docL.get(p)||[]).forEach(f=>f());colL.forEach(l=>{if(p.startsWith(l.col+"/"))l.fire()})}
   async function cargarTodo(){
-    const filas=[];for(let desde=0;;desde+=1000){const {data,error}=await sb.from("qm_docs").select("path,data").range(desde,desde+999);if(error)throw err(error);filas.push(...data);if(data.length<1000)break}
-    cache.clear();filas.forEach(r=>cache.set(r.path,r.data));cargado=true;avisar(null);
+    const filas=[];for(let desde=0;;desde+=1000){const {data,error}=await sb.from("qm_docs").select("path,data").not("col","like","apl%").range(desde,desde+999);if(error)throw err(error);filas.push(...data);if(data.length<1000)break}
+    for(const k of [...cache.keys()])if(!k.startsWith("apl"))cache.delete(k);filas.forEach(r=>cache.set(r.path,r.data));cargado=true;avisar(null);
   }
   function enVivo(){
     if(rt)return;
     rt=sb.channel("qm_docs").on("postgres_changes",{event:"*",schema:"public",table:"qm_docs"},m=>{
       if(m.eventType==="DELETE"){const p=m.old&&m.old.path;if(p){cache.delete(p);avisar(p)}}
-      else if(m.new&&m.new.path){cache.set(m.new.path,m.new.data);avisar(m.new.path)}}).subscribe();
+      else if(m.new&&m.new.path){if(m.new.path.startsWith("apl")&&!cache.has(m.new.path))return;cache.set(m.new.path,m.new.data);avisar(m.new.path)}}).subscribe();
     setInterval(()=>{if(document.visibilityState==="visible")cargarTodo().catch(()=>{})},60000); // respaldo por si se cae la conexión en vivo
     document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")cargarTodo().catch(()=>{})});
   }
