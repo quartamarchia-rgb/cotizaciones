@@ -50,6 +50,7 @@ button,.btn{font:inherit;font-weight:600;border:1px solid var(--line);background
 button:hover,.btn:hover{border-color:var(--brand)}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 button.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.gh{margin:10px 0;padding:10px 12px;border:1px solid var(--brand);border-radius:10px;background:var(--panel)}.gh-h{display:flex;gap:10px;align-items:center;margin-bottom:8px}.gh-h #gh-x{margin-left:auto;padding:2px 10px}.gh-f{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}.gh-f label{display:flex;flex-direction:column;font-size:12px;color:var(--label);gap:2px}.gh-f select{min-width:120px}.gh-g{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.gh-g>b{width:100%;font-size:12px;color:var(--label)}.gh-g button{font-weight:600}.gh-err{color:var(--bad)}
 button.wa,.btn.wa{background:#1f8a4c;border-color:#1f8a4c;color:#fff}
 button:disabled{opacity:.5;cursor:not-allowed}
 input,select,textarea{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
@@ -129,7 +130,7 @@ table.it td{border-left:1px solid var(--ink);border-right:1px solid var(--ink);p
 table.it tr:last-child td{border-bottom:1px solid var(--ink)}
 table.it input,table.it select{border:0;background:transparent;font-weight:700}
 table.it input.desc{text-transform:uppercase}
-table.it .c-m{width:150px}table.it .c-co{width:110px;background:var(--warn-soft)}
+table.it .c-m{width:150px}table.it .c-np{width:120px}table.it .c-co{width:110px;background:var(--warn-soft)}
 table.it input.co{background:color-mix(in srgb,var(--warn-soft) 60%,transparent);font-weight:500}
 table.it input.miss{background:var(--bad-soft);outline:1px solid var(--bad)}
 table.it .c-q{width:80px}table.it .c-u{width:90px}table.it .c-p{width:120px}table.it .c-i{width:130px}table.it .c-x{width:40px}
@@ -250,6 +251,7 @@ const moDe=t=>t==="ges"?+S.tar.moGes:+S.tar.moOtros;
   sub("cfg/tarifas",d=>{S.tar={...TAR_DEF,...d}});
   sub("stats/refacciones",d=>{S.statR=d});
   sub("stats/clientes",d=>{S.statC=d});
+  sub("stats/vehiculos",d=>{S.statV=d});
 })();
 
 /* ---------- ruteo ---------- */
@@ -463,7 +465,7 @@ function renderCatalog(view){
       ${k.base==="cotizadas"?`<label>Ordenar por<span class="seg"><button data-orden="piezas" aria-pressed="${k.orden==="piezas"}">Piezas</button><button data-orden="veces" aria-pressed="${k.orden==="veces"}">Veces</button></span></label>`:""}
       <label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)"><input id="k-serv" type="checkbox" style="width:auto" ${k.serv?"checked":""}> Incluir servicios y mano de obra</label>
       <label class="grow">Buscar<input id="k-q" type="search" placeholder="Aceite, filtro, balatas…" value="${esc(k.q)}"></label>
-      <button id="k-csv">⬇ Descargar lista (Excel)</button></div>`;
+      <button id="k-csv">⬇ Descargar lista (Excel)</button>${S.isOwner?`<button id="k-imp" title="Cargar un archivo de datos que te prepare Claude">Importar datos</button>`:""}</div>`;
     if(k.base==="aprobadas")html+=`<div class="hint" style="margin-bottom:8px">"Solo aprobadas" cuenta desde noviembre 2026, que es cuando la app empezó a registrar qué se aprobó. Para compras con más historial usa "Cotizadas".</div>`;
     html+=`<div class="tablebox"><table class="ctl" style="min-width:820px"><thead><tr><th>#</th><th>Refacción</th><th>Unidad</th><th class="num">Veces cotizada</th><th class="num">Piezas cotizadas</th><th class="num">Piezas aprobadas</th><th class="num">Último precio</th><th>Última vez</th></tr></thead><tbody>`;
     if(!show.length)html+=`<tr><td colspan="8"><div class="empty">No hay refacciones con ese filtro.</div></td></tr>`;
@@ -477,7 +479,7 @@ function renderCatalog(view){
       <label>Tipo<span class="seg"><button data-tipo="todos" aria-pressed="${k.tipo==="todos"}">Todos</button><button data-tipo="credito" aria-pressed="${k.tipo==="credito"}">Crédito</button><button data-tipo="particular" aria-pressed="${k.tipo==="particular"}">Particular</button></span></label>
       <label>Ordenar por<span class="seg"><button data-ordc="monto" aria-pressed="${k.ordenC==="monto"}">Monto</button><button data-ordc="cot" aria-pressed="${k.ordenC==="cot"}">Cotizaciones</button><button data-ordc="ultima" aria-pressed="${k.ordenC==="ultima"}">Más reciente</button></span></label>
       <label class="grow">Buscar<input id="k-q" type="search" placeholder="Nombre o teléfono" value="${esc(k.q)}"></label>
-      <button id="k-csv">⬇ Descargar lista (Excel)</button></div>
+      <button id="k-csv">⬇ Descargar lista (Excel)</button>${S.isOwner?`<button id="k-imp" title="Cargar un archivo de datos que te prepare Claude">Importar datos</button>`:""}</div>
       <div class="hint" style="margin-bottom:8px">"CLIENTE" agrupa particulares que se cotizaron sin nombre en el Excel. Lo aprobado se cuenta desde noviembre 2026.</div>
       <div class="tablebox"><table class="ctl" style="min-width:900px"><thead><tr><th>#</th><th>Cliente</th><th>Tipo</th><th>Teléfono</th><th class="num">Cotizaciones</th><th class="num">Monto cotizado</th><th class="num">Aprobado</th><th class="num">Unidades</th><th>Última cotización</th></tr></thead><tbody>`;
     if(!rows.length)html+=`<tr><td colspan="9"><div class="empty">No hay clientes con ese filtro.</div></td></tr>`;
@@ -493,7 +495,7 @@ function bindCatalog(view){
     if(b.dataset.view){S.kat.q="";S.kat.verTodas=false;location.hash=b.dataset.view;return}
     if(b.dataset.base){S.kat.base=b.dataset.base}else if(b.dataset.orden){S.kat.orden=b.dataset.orden}
     else if(b.dataset.tipo){S.kat.tipo=b.dataset.tipo}else if(b.dataset.ordc){S.kat.ordenC=b.dataset.ordc}
-    else if(b.id==="k-all"){S.kat.verTodas=!S.kat.verTodas}else if(b.id==="k-csv"){exportCSV(view);return}else return;
+    else if(b.id==="k-all"){S.kat.verTodas=!S.kat.verTodas}else if(b.id==="k-csv"){exportCSV(view);return}else if(b.id==="k-imp"){importarDatos();return}else return;
     renderCatalog(view)};
   const per=$("#k-per");if(per)per.onchange=e=>{S.kat.periodo=e.target.value;renderCatalog(view)};
   const sv=$("#k-serv");if(sv)sv.onchange=e=>{S.kat.serv=e.target.checked;renderCatalog(view)};
@@ -577,6 +579,84 @@ function markContact(folio,kind){
 }
 
 /* ---------- hoja de cotización ---------- */
+function lev(a,b){const m=a.length,n=b.length;if(!m||!n)return Math.max(m,n);let p=Array.from({length:n+1},(_,j)=>j);for(let i=1;i<=m;i++){const q=[i];for(let j=1;j<=n;j++)q[j]=Math.min(p[j]+1,q[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=q}return p[n]}
+function parecidos(nombre,tel){const a=norm(nombre),ta=a.split(" ").filter(w=>w.length>=3),tl=String(tel||"").replace(/\D/g,"");const r=[];
+  for(const c of S.cl||[]){const b=norm(c.n);if(!b||b===a)continue;let s=0;
+    if(tl.length>=10){if(String(c.tel||"").replace(/\D/g,"")===tl)r.push([3,c]);continue}
+    const L=Math.max(a.length,b.length),dl=lev(a,b);if(dl<=Math.max(2,Math.floor(L*0.2)))s=Math.max(s,2.5-dl/L);
+    const tb=b.split(" ").filter(w=>w.length>=3);
+    if(ta.length&&tb.length){const hit=w=>tb.some(x=>x===w||(w.length>=5&&lev(w,x)<=1));const k=ta.filter(hit).length;
+      if(k===ta.length||k===tb.length&&k>0)s=Math.max(s,1+k/Math.max(ta.length,tb.length))}
+    if(s>0)r.push([s,c])}
+  return r.sort((x,y)=>y[0]-x[0]).slice(0,3).map(x=>x[1])}
+function avisoParecido(d,porTel){const old=$("#aviso-cl");if(old)old.remove();const ops=parecidos(d.cliente,porTel?d.tel:"");const inp=$("#e-cliente");if(!ops.length||!inp)return;
+  const box=document.createElement("div");box.id="aviso-cl";box.setAttribute("role","alert");
+  box.style.cssText="margin-top:6px;padding:8px 10px;border:1px solid var(--warn);border-radius:8px;background:var(--panel);font-size:13px;display:flex;flex-wrap:wrap;gap:6px;align-items:center";
+  box.innerHTML=`<span style="width:100%"><b>¿No será alguno de estos clientes?</b> Ya existen ${porTel?"con este mismo teléfono":"con un nombre parecido"}:</span>`+ops.map((c,i)=>`<button type="button" class="primary" data-usa="${i}">${esc(c.n)}${c.tel?" · "+esc(c.tel):""}${c.cred?" · Crédito":""}</button>`).join("")+`<button type="button" data-nuevo>No, es cliente nuevo</button>`;
+  inp.parentNode.appendChild(box);
+  box.querySelectorAll("[data-usa]").forEach(b=>b.onclick=()=>{const c=ops[+b.dataset.usa];inp.value=c.n;d.tel="";inp.dispatchEvent(new Event("change"))});
+  box.querySelector("[data-nuevo]").onclick=()=>box.remove()}
+const GH_API="https://catalogo.grupogonher.com/CatalogoGonherServices/api/",GH_WEB="https://catalogo.grupogonher.com/CatalogoGonher/";
+async function ghGet(p){const ac=new AbortController(),t=setTimeout(()=>ac.abort(),10000);try{const r=await fetch(GH_API+p,{signal:ac.signal});if(!r.ok)throw new Error("HTTP "+r.status);return await r.json()}finally{clearTimeout(t)}}
+function ghPick(list,key,txt){const n=norm(txt);if(!n||!list)return null;return list.find(x=>norm(x[key])===n)||list.find(x=>norm(x[key]).startsWith(n)||n.startsWith(norm(x[key])))||list.find(x=>norm(x[key]).includes(n)||n.includes(norm(x[key])))||null}
+const GH_ALIAS={"VW":"VOLKSWAGEN","VOLKS":"VOLKSWAGEN","CHEVY":"CHEVROLET","GM":"CHEVROLET","MERCEDES":"MERCEDES BENZ","RAM":"RAM"};
+async function ghPaso(d,desde){const g=S.gh;g.err="";g.busy=true;ghMount(d);
+  try{
+    if(desde<=0){g.arms=await ghGet("Armadoras/GetArmadorasByTipo/"+g.tipo);if(!g.arm){const m=norm(d.marca);const a=ghPick(g.arms,"armadora",GH_ALIAS[m]||m);g.arm=a?a.id:""}}
+    if(desde<=1){g.anios=[];g.mods=[];g.mots=[];g.prods=[];g.res=null;if(g.arm){g.anios=(await ghGet(`Modelos/GetAniosByArmadoraTipo/${g.arm}/${g.tipo}`)).map(x=>x.value);if(!g.anio&&g.anios.includes(+d.anio))g.anio=+d.anio}}
+    if(desde<=2){g.mods=[];g.mots=[];g.prods=[];g.res=null;if(g.arm&&g.anio){g.mods=await ghGet(`Modelos/GetModelosByTipoArmadoraAnio/${g.tipo}/${g.arm}/${g.anio}`);if(!g.mod){const m=ghPick(g.mods,"modelo",d.modelo);g.mod=m?m.id:""}}}
+    if(desde<=3){g.mots=[];g.prods=[];g.res=null;if(g.mod){g.mots=await ghGet(`Motores/GetMotoresByModeloAnio/${g.mod}/${g.anio}`);if(!g.mot&&g.mots.length===1)g.mot=g.mots[0].id}}
+    if(desde<=4){g.prods=[];g.res=null;if(g.mot){g.prods=await ghGet("Jerarquias/GetProductosSap/"+g.mot);if(!g.prods.some(p=>p.id==g.prod))g.prods=[{id:"auto",descripcion:"FILTROS Y BUJÍAS"}].concat(g.prods.filter(p=>p.id!="auto"));if(!g.prods.some(p=>p.id==g.prod))g.prod="auto"}}
+    if(desde<=5&&g.mot&&g.prod){g.res=null;const key=`gonher/m${g.mot}p${g.prod}`;
+      try{const ids=g.prod=="auto"?g.prods.filter(p=>p.id==166||p.id==178).map(p=>p.id):[g.prod];let r=[];for(const id of ids)r=r.concat(await ghGet(`Articulos/SearchArticulosByID/${g.mot}/${id}`));
+        g.res=r.map(x=>{const a=x.articulo||{},mk=(((a.tipo_sap||{}).segmento_sap||{}).marca_sap||{}).descripcion||"GONHER";return {t:String(a.customProductoTag||((a.tipo_sap||{}).descripcion)||"").trim(),n:a.descripcion_cta||a.descripcion||"",m:mk,mat:a.material||"",nota:x.notas||a.notas||""}});
+        g.cache=false;try{await S.db.doc(key).set({res:g.res,veh:ghVeh(),f:new Date().toISOString()})}catch(e){}
+      }catch(e){let s=null;try{s=await S.db.doc(key).get()}catch(_){}
+        if(s&&s.exists){const v=s.data();g.res=v.res;g.cache=v.f}else throw e}}
+  }catch(e){g.err="No se pudo consultar el catálogo de Gonher en este momento."}
+  g.busy=false;ghMount(d)}
+function ghVeh(){const g=S.gh,f=(l,k,id)=>((l||[]).find(x=>x.id==id)||{})[k]||"";return [g.anio,f(g.arms,"armadora",g.arm),f(g.mods,"modelo",g.mod),f(g.mots,"motor",g.mot)].filter(Boolean).join(" ")}
+function ghMount(d){const old=$("#gh-panel");if(old)old.remove();const g=S.gh;if(!g||!g.open)return;const act=app.querySelector(".items+.actions");if(!act)return;
+  const sel=(id,list,val,lab,txt,dis)=>`<label>${lab}<select id="${id}" ${dis||!list||!list.length?"disabled":""}><option value="">${list&&list.length?"Elige…":"—"}</option>${(list||[]).map(x=>{const v=typeof x==="object"?x.id:x;return `<option value="${esc(v)}" ${v==val?"selected":""}>${esc(typeof x==="object"?x[txt]:x)}</option>`}).join("")}</select></label>`;
+  const p=document.createElement("div");p.id="gh-panel";p.className="gh";
+  const link=g.mot&&g.prod?`${GH_WEB}resultados/vehiculo/${g.mot}/${g.prod=="auto"?166:g.prod}`:GH_WEB;
+  const hs=ghHist(d);S.ghH=hs;
+  const hist=`<div class="gh-g"><b>Lo que más se ha cotizado en ${esc(String(d.marca||"").toUpperCase())} ${esc(String(d.modelo||"").toUpperCase())}${d.anio?" (años cercanos primero)":""}</b>${hs.length?hs.map((h,i)=>`<button type="button" data-hs="${i}" title="Agregar a la cotización">+ ${esc(h.d)}${h.m?` <span class="muted">${esc(h.m)}</span>`:""}${h.np?` <span class="muted">${esc(h.np)}</span>`:""} <span class="hint">${h.k}×</span></button>`).join(""):`<span class="hint">Todavía no hay cotizaciones de este modelo.</span>`}</div>`;
+  let res="";
+  if(g.busy)res=`<p class="muted">Consultando Gonher…</p>`;
+  else if(g.err)res=`<p class="gh-err">${esc(g.err)} <a href="${link}" target="_blank" rel="noopener">Abrir catálogo Gonher en otra ventana</a></p>`;
+  else if(g.res&&!g.res.length)res=`<p class="muted">Gonher no tiene piezas de este tipo para ese motor. <a href="${link}" target="_blank" rel="noopener">Ver en Gonher</a></p>`;
+  else if(g.res){const grp={};g.res.forEach((r,i)=>(grp[r.t]=grp[r.t]||[]).push([r,i]));
+    res=(g.cache?`<p class="gh-err">Gonher no respondió; se muestra la última consulta guardada (${esc(dmy(g.cache.slice(0,10)))}).</p>`:"")+Object.entries(grp).map(([t,l])=>`<div class="gh-g"><b>${esc(t)}</b>${l.map(([r,i])=>`<button type="button" data-gh="${i}" title="Agregar a la cotización">+ ${esc(r.n)} <span class="muted">${esc(r.m)}</span></button>${r.nota?`<span class="hint">${esc(r.nota)}</span>`:""}`).join("")}</div>`).join("")+`<p class="hint">Clic en una pieza para agregarla como renglón. Después escribe el costo del proveedor. <a href="${link}" target="_blank" rel="noopener">Ver en Gonher</a></p>`}
+  p.innerHTML=`<div class="gh-h"><b>Sugeridas para este vehículo</b><span class="hint">Historial del taller + catálogo Gonher en vivo.</span><button type="button" id="gh-x" aria-label="Cerrar catálogo Gonher">×</button></div>
+  ${hist}<div class="gh-g" style="margin-top:10px"><b>Buscar en DAPESA (con precio de proveedor)</b><input id="dp-q" style="flex:1;min-width:220px" value="${esc((" "+String(d.modelo||"")+" "+String(d.anio||"")).toUpperCase())}" placeholder="Pieza, modelo y año" aria-label="Búsqueda en DAPESA"><button type="button" id="dp-go" class="primary">Abrir en DAPESA</button><span class="hint">Escribe la pieza antes del modelo (ej. rótula aveo 2015). Copia la <b>Clave Prov</b> como número de parte.</span></div><div class="gh-g" style="margin-top:10px"><b>Catálogo Gonher (números de parte exactos)</b></div><div class="gh-f">${sel("gh-tipo",[{id:1,t:"Automotriz"},{id:2,t:"Camiones y pesados"},{id:3,t:"Motos"}],g.tipo,"Tipo","t")}${sel("gh-arm",g.arms,g.arm,"Armadora","armadora")}${sel("gh-anio",g.anios,g.anio,"Año")}${sel("gh-mod",g.mods,g.mod,"Modelo","modelo")}${sel("gh-mot",g.mots,g.mot,"Motor","motor")}${sel("gh-prod",g.prods,g.prod,"Producto","descripcion")}</div>${res}`;
+  act.after(p);
+  const on=(id,k,paso,num)=>{const e=p.querySelector("#"+id);if(e)e.onchange=()=>{g[k]=num?+e.value||"":e.value;const reset={tipo:["arm","anio","mod","mot"],arm:["anio","mod","mot"],anio:["mod","mot"],mod:["mot"],mot:[]}[k]||[];reset.forEach(r=>g[r]="");ghPaso(d,paso)}};
+  on("gh-tipo","tipo",0,1);on("gh-arm","arm",1,1);on("gh-anio","anio",2,1);on("gh-mod","mod",3,1);on("gh-mot","mot",4,1);on("gh-prod","prod",5,0);
+  p.querySelector("#gh-x").onclick=()=>{g.open=false;g.cerrado=true;p.remove()};
+  const dq=p.querySelector("#dp-q");if(dq){const go=()=>window.open("https://dapesasirvete.com.mx/sirvete/cliente/catalogo/#/?buscar="+encodeURIComponent(dq.value.trim().toLowerCase()),"_blank","noopener");p.querySelector("#dp-go").onclick=go;dq.onkeydown=e=>{if(e.key==="Enter")go()};dq.addEventListener("focus",()=>{if(!dq._f){dq._f=1;dq.setSelectionRange(0,0)}})}
+  p.querySelectorAll("[data-hs]").forEach(b=>b.onclick=()=>{const h=S.ghH[+b.dataset.hs];ghAgregar(d,{c:/BUJ/i.test(h.d)?4:1,u:h.u||"PZA",d:h.d,m:h.m,np:h.np,p:0})});
+  p.querySelectorAll("[data-gh]").forEach(b=>b.onclick=()=>{const r=g.res[+b.dataset.gh];ghAgregar(d,{c:/BUJ/i.test(r.t)?4:1,u:"PZA",d:r.t.toUpperCase(),np:r.n.toUpperCase(),m:r.m.toUpperCase(),p:0})})}
+function ghAbrir(d){const k=[d.marca,d.modelo,d.anio].map(norm).join("|");if(!S.gh||S.gh.k!==k)S.gh={k,tipo:1,arm:"",anio:"",mod:"",mot:"",prod:"auto"};S.gh.open=true;S.gh.d=d;ghPaso(d,S.gh.arms?(S.gh.mot?5:0):0)}
+function mismoModelo(ma,mo,ma2,mo2){const A=x=>GH_ALIAS[x]||x;if(A(ma)!==A(ma2))return false;return mo===mo2||(mo.length>=3&&mo2.length>=3&&(mo.startsWith(mo2)||mo2.startsWith(mo)))}
+function ghHist(d){const ma=norm(d.marca),mo=norm(d.modelo),y=+d.anio||0;if(!ma||!mo)return [];const m=new Map();
+  const add=(dd,mm,np,u,k,y0,y1)=>{if(/MANO DE OBRA|LIMPIEZA|SERVICIO|DIAGN|REVISI|ESCANE|ALINEA|BALANCEO|LAVADO|TRASLADO|GR[UÚ]A|INSTALAC|REPARAC|RECTIFIC|AFINACI|HOJALAT|PINTURA|SOLDAD|RESCATE/.test(String(dd).toUpperCase()))return;const key=norm(dd+" "+(mm||""));let e=m.get(key);if(!e){e={d:dd,m:mm||"",np:np||"",u:u||"PZA",k:0,cerca:false};m.set(key,e)}e.k+=k;if(np)e.np=np;if(y&&y0&&y>=y0-2&&y<=y1+2)e.cerca=true};
+  const V=(S.statV&&S.statV.items)||{};
+  for(const e of Object.values(V)){if(!mismoModelo(ma,mo,norm(e.ma),norm(e.mo)))continue;for(const x of e.it)add(x[0],x[1],"","PZA",x[2],x[3],x[4])}
+  for(const q of S.quotes.values()){if(q===d||!mismoModelo(ma,mo,norm(q.marca),norm(q.modelo)))continue;const yy=+q.anio||0;for(const it of q.items||[])if(needsBrand(it)&&String(it.d||"").trim())add(it.d,it.m,it.np,it.u,1,yy,yy)}
+  const ya=new Set(d.items.map(i=>norm(i.d)));
+  return [...m.values()].filter(e=>!ya.has(norm(e.d))).map(e=>{if(!e.np){const c=S.catIdx&&S.catIdx.get(norm(e.d+" "+e.m));if(c&&c.np)e.np=c.np}return e}).sort((a,b)=>(b.cerca-a.cerca)||(b.k-a.k)).slice(0,14)}
+function ghAgregar(d,it){const c=(it.np&&S.cat.find(x=>x.np&&norm(x.np)===norm(it.np)))||(S.catIdx&&S.catIdx.get(norm(it.d+" "+(it.m||""))));
+  if(c){it.u=c.u||it.u;if(!it.np&&c.np)it.np=c.np;if(!it.m&&c.m)it.m=c.m;if(c.co>0){it.costo=c.co;it.p=precioCot(c.co,d)}else it.p=(c.pt&&c.pt[tarifaDe(d)])||c.p||0}
+  const last=d.items[d.items.length-1];if(last&&!String(last.d||"").trim()&&!+last.p)d.items[d.items.length-1]=it;else d.items.push(it);renderSheet();toast("Agregado: "+it.d+(it.np?"":" · falta su número de parte"))}
+function ghAuto(d){if(!d.marca||!d.modelo||!d.anio||String(d.anio).length<4)return;const k=[d.marca,d.modelo,d.anio].map(norm).join("|");if(S.gh&&S.gh.k===k&&S.gh.d===d&&S.gh.open)return;ghAbrir(d)}
+async function importarDatos(){if(!S.isOwner){toast("Solo Gerencia puede importar datos.");return}
+  const inp=document.createElement("input");inp.type="file";inp.accept=".json,application/json";
+  inp.onchange=async()=>{const f=inp.files[0];if(!f)return;try{const filas=JSON.parse(await f.text());if(!Array.isArray(filas))throw new Error("formato");
+    const ok=filas.filter(r=>r&&typeof r.path==="string"&&/^(stats|cat)\/[a-z0-9-]+$/.test(r.path)&&r.data&&typeof r.data==="object");
+    if(!ok.length){toast("El archivo no trae datos que se puedan importar.");return}
+    for(const r of ok)await S.db.doc(r.path).set(r.data);toast("Datos importados: "+ok.map(r=>r.path).join(", "))}catch(e){toast("No se pudo importar el archivo.")}};
+  inp.click()}
 function renderSheet(){
   const app=$("#app");const d=S.draft;
   if(!d){app.innerHTML=S.loaded?`<div class="empty">No encontré esa cotización. <a href="#control">Volver al control</a></div>`:`<div class="empty">Cargando…</div>`;return}
@@ -620,18 +700,19 @@ function renderSheet(){
     </div>
   </div>
   ${integra?`<div class="note-int"><b>Integra Bienestar:</b> descarga las dos versiones. La de precios para cotizar y la <b>sin precio</b> para el diagnóstico.</div>`:""}
-  <div class="items"><table class="it"><thead><tr><th class="c-q">CANTIDAD</th><th class="c-u">UNIDAD</th><th>DESCRIPCIÓN</th><th class="c-m">MARCA</th><th class="c-co" title="Lo que te cobra el proveedor, con IVA. No se imprime.">COSTO c/IVA</th><th class="c-p">P.UNITARIO</th><th class="c-i">IMPORTE</th><th class="c-x"><span class="hint">Quitar</span></th></tr></thead><tbody>
+  <div class="items"><table class="it"><thead><tr><th class="c-q">CANTIDAD</th><th class="c-u">UNIDAD</th><th>DESCRIPCIÓN</th><th class="c-m">MARCA</th><th class="c-np" title="Número de parte del fabricante (ej. GP-6811). Obligatorio en refacciones.">No. PARTE</th><th class="c-co" title="Lo que te cobra el proveedor, con IVA. No se imprime.">COSTO c/IVA</th><th class="c-p">P.UNITARIO</th><th class="c-i">IMPORTE</th><th class="c-x"><span class="hint">Quitar</span></th></tr></thead><tbody>
   ${d.items.map((it,k)=>`<tr>
     <td><input class="n" data-k="${k}" data-f="c" type="number" min="0" step="any" value="${esc(it.c)}" aria-label="Cantidad"></td>
     <td><select data-k="${k}" data-f="u" aria-label="Unidad">${["PZA","SERV","LT","JGO","KIT"].concat(["PZA","SERV","LT","JGO","KIT"].includes(it.u)?[]:[it.u]).map(u=>`<option ${u===it.u?"selected":""}>${esc(u)}</option>`).join("")}</select></td>
     <td><input class="desc" data-k="${k}" data-f="d" list="dl-cat" value="${esc(it.d)}" placeholder="Escribe: aceite, balatas, mano de obra…" aria-label="Descripción" autocomplete="off"></td>
     <td><input class="desc${needsBrand(it)&&!String(it.m||"").trim()&&S.showErr?" miss":""}" data-k="${k}" data-f="m" list="dl-marcas" value="${esc(it.m||"")}" placeholder="${needsBrand(it)?"Obligatoria":"No aplica"}" aria-label="Marca" autocomplete="off"></td>
+    <td><input class="desc${needsBrand(it)&&!String(it.np||"").trim()&&S.showErr?" miss":""}" data-k="${k}" data-f="np" list="dl-np" value="${esc(it.np||"")}" placeholder="${needsBrand(it)?"Obligatorio":"No aplica"}" aria-label="Número de parte" autocomplete="off"></td>
     <td><input class="n co" data-k="${k}" data-f="costo" type="number" min="0" step="any" value="${it.costo?esc(it.costo):""}" placeholder="${needsBrand(it)?"Proveedor":""}" aria-label="Costo del proveedor con IVA"></td>
     <td><input class="n" data-k="${k}" data-f="p" type="number" min="0" step="any" value="${esc(it.p)}" aria-label="Precio unitario"></td>
     <td class="money" id="imp-${k}">${money((+it.c||0)*(+it.p||0))}</td>
     <td><button class="x" data-del="${k}" aria-label="Quitar renglón">×</button></td></tr>`).join("")}
   </tbody></table></div>
-  <div class="actions"><button id="add-row">+ Agregar renglón</button><span class="hint">Escribe el <b>costo del proveedor con IVA</b> y el precio se calcula solo: ${estiloPMC(d)?"al costo con IVA se le suma "+margenDe(d)+"% directo y la cotización no lleva IVA"+(tarifaDe(d)==="pmc"?" (PMC).":" (pago en efectivo, igual que PMC)."):"se le quita el IVA y se suma "+S.tar[tarifaDe(d)]+"% ("+TAR_NOM[tarifaDe(d)]+")."} La columna amarilla no se imprime. Mano de obra: $${moDe(tarifaDe(d)).toLocaleString("es-MX")}.</span></div>
+  <div class="actions"><button id="add-row">+ Agregar renglón</button>${H?"":`<button id="gh-btn" type="button" title="Refacciones sugeridas por marca, modelo y año">Sugerir refacciones</button>`}<span class="hint">Escribe el <b>costo del proveedor con IVA</b> y el precio se calcula solo: ${estiloPMC(d)?"al costo con IVA se le suma "+margenDe(d)+"% directo y la cotización no lleva IVA"+(tarifaDe(d)==="pmc"?" (PMC).":" (pago en efectivo, igual que PMC)."):"se le quita el IVA y se suma "+S.tar[tarifaDe(d)]+"% ("+TAR_NOM[tarifaDe(d)]+")."} La columna amarilla no se imprime. Mano de obra: $${moDe(tarifaDe(d)).toLocaleString("es-MX")}.</span></div>
   <div class="opts">
     ${facturaHTML(d,H)}
     ${descuentoHTML(d,H)}
@@ -651,6 +732,7 @@ function renderSheet(){
   ${d.creadoPor?`<div class="phone">Elaboró: ${esc(d.creadoPor)}${d.modPor&&d.modPor!==d.creadoPor?" · Último cambio: "+esc(d.modPor):""}</div>`:""}
   ${!isNew&&!H&&waNumber(d.tel)?`<div class="phone">WhatsApp: +${esc(waNumber(d.tel))}${d.enviada?" · Enviada "+dmy(d.enviada.slice(0,10)):""}${(d.seg||[]).length?" · "+d.seg.length+" seguimiento(s)":""}</div>`:""}
   </div>
+  <datalist id="dl-np">${S.cat.filter(c=>c.np).slice(0,1500).map(c=>`<option value="${esc(c.np)}">${esc(c.d)} · ${esc(c.m||"")}</option>`).join("")}</datalist>
   <datalist id="dl-cat">${S.cat.slice(0,1200).map(c=>`<option value="${esc(c.d)}">${esc(c.u)} · ${money(c.p)}</option>`).join("")}</datalist>
   <datalist id="dl-cl">${S.cl.map(c=>`<option value="${esc(c.n)}">${c.cred?"Crédito":"Particular"}${c.tel?" · "+esc(c.tel):""}</option>`).join("")}</datalist>
   <datalist id="dl-marcas">${marcasConocidas().map(m=>`<option value="${esc(m)}">`).join("")}</datalist>
@@ -716,7 +798,7 @@ function recalcPrecios(d,prevT){revisarDescuento(d);const t=tarifaDe(d);if(estil
 function needsBrand(it){return !(it.u==="SERV"||esServicio(it))}
 const MARCAS_BASE=["MOTORCRAFT","GONHER","STP","FRAM","NGK","BOSCH","LTH","VALUCRAFT","THOMSON","HELLA","MONROE","KYB","TKM","YOKOMITSU","ACDELCO","CHAMPION","WAGNER","BREMBO","GATES","DAYCO","SKF","TIMKEN","MOOG","SYD","DENSO","MOBIL","CASTROL","QUAKER STATE","AKRON","INTERFIL","WIX","MANN","FRITEC","DUSSAN","RAYBESTOS","FEDERAL MOGUL","OEM","GENUINO"];
 function marcasConocidas(){const s=new Set(MARCAS_BASE);for(const c of S.cat)if(c.m)s.add(c.m);for(const q of S.quotes.values())for(const i of q.items||[])if(i.m)s.add(i.m);return [...s].sort()}
-const fullDesc=it=>{const d=String(it.d||"").toUpperCase(),m=String(it.m||"").trim().toUpperCase();return m&&!norm(d).includes(norm(m))?d+" "+m:d};
+const fullDesc=it=>{let d=String(it.d||"").toUpperCase();const m=String(it.m||"").trim().toUpperCase(),np=String(it.np||"").trim().toUpperCase();if(np&&!norm(d).includes(norm(np)))d+=" "+np;return m&&!norm(d).includes(norm(m))?d+" "+m:d};
 function totalsHTML(d){setTimeout(()=>{const u=$("#util");if(u&&S.draft===d){u.innerHTML=utilHTML(d);bindAutorizar(d)}},0);const t=calc(d);return `<div>SUBTOTAL</div><div class="num">${money(t.sub)}</div>
   ${+d.desc?`<div>${+d.desc}% DESCUENTO</div><div class="num">-${money(t.desc)}</div>`:""}
   <div>IVA</div><div class="num">${d.sinIva?"—":money(t.iva)}</div><div class="t">TOTAL</div><div class="num t">${money(t.total)}</div>
@@ -732,14 +814,16 @@ function bindSheet(){
   $("#e-placa").addEventListener("change",e=>{const v=S.vhIdx&&S.vhIdx.get(norm(e.target.value));if(!v)return;
     d.placa=v.pl;if(!d.anio)d.anio=v.a;if(!d.marca)d.marca=v.ma;if(!d.modelo)d.modelo=v.mo;if(!d.cliente&&v.cl){d.cliente=v.cl;const c=S.clIdx&&S.clIdx.get(norm(v.cl));if(c){if(!d.tel)d.tel=c.tel;d.credito=!!c.cred}}
     renderSheet();toast("Datos del vehículo llenados desde cotizaciones anteriores")});
-  $("#e-cliente").addEventListener("change",e=>{const pv=tarifaDe(d);const c=S.clIdx&&S.clIdx.get(norm(e.target.value));if(c){d.cliente=c.n;if(!d.tel)d.tel=c.tel;d.credito=!!c.cred}else d.cliente=e.target.value.toUpperCase();d.tarifa=null;recalcPrecios(d,pv);renderSheet()});
+  $("#e-cliente").addEventListener("change",e=>{const pv=tarifaDe(d);const c=S.clIdx&&S.clIdx.get(norm(e.target.value));if(c){d.cliente=c.n;if(!d.tel)d.tel=c.tel;d.credito=!!c.cred}else d.cliente=e.target.value.toUpperCase();d.tarifa=null;recalcPrecios(d,pv);renderSheet();if(!c&&d.cliente)avisoParecido(d)});
+  $("#e-tel").addEventListener("change",()=>{if(d.cliente&&!(S.clIdx&&S.clIdx.get(norm(d.cliente))))avisoParecido(d,true)});
   $("#e-cred").addEventListener("change",()=>{const pv=tarifaDe(d);d.tarifa=null;recalcPrecios(d,pv);renderSheet()});
   $("#e-tipo").onchange=e=>d.tipoServ=e.target.value;
   $("#e-tarifa").onchange=e=>{const pv=tarifaDe(d);d.tarifa=e.target.value;recalcPrecios(d,pv);renderSheet();toast("Precios recalculados con "+TAR_NOM[d.tarifa]+" · "+S.tar[d.tarifa]+"%")};
   document.querySelectorAll('input[name=serie]').forEach(r=>r.onchange=e=>{d.serie=e.target.value;if(["CORRECTIVO","PREVENTIVO"].includes(d.tipoServ))d.tipoServ=d.serie==="P"?"PREVENTIVO":"CORRECTIVO";renderSheet()});
   app.querySelectorAll("table.it [data-k]").forEach(el=>{
     const k=+el.dataset.k,f=el.dataset.f;
-    el.addEventListener("input",()=>{let v=el.value;if(f==="c"||f==="p"||f==="costo")v=v===""?0:+v;if(f==="d")v=v.toUpperCase();d.items[k][f]=v;
+    el.addEventListener("input",()=>{let v=el.value;if(f==="c"||f==="p"||f==="costo")v=v===""?0:+v;if(f==="d"||f==="np")v=v.toUpperCase();d.items[k][f]=v;
+      if(f==="np"){const c=v&&S.cat.find(x=>x.np&&norm(x.np)===norm(v));const r=el.closest("tr");if(c&&!String(d.items[k].d||"").trim()){const it=d.items[k];it.d=c.d;it.m=c.m||it.m;it.u=c.u;r.querySelector("[data-f=d]").value=c.d;r.querySelector("[data-f=m]").value=it.m||"";r.querySelector("[data-f=u]").value=c.u;if(!it._pManual){let pr;if(c.co>0){it.costo=c.co;r.querySelector("[data-f=costo]").value=c.co;pr=precioCot(c.co,d)}else pr=(c.pt&&c.pt[tarifaDe(d)])||c.p;it.p=pr;r.querySelector("[data-f=p]").value=pr}}}
       const row=el.closest("tr");const setP=x=>{d.items[k].p=x;row.querySelector('[data-f=p]').value=x};
       if(f==="costo"){d.items[k]._pManual=false;if(v>0)setP(precioCot(v,d))}
       if(f==="d"&&esMO(d.items[k])&&!d.items[k]._pManual){d.items[k].u="SERV";row.querySelector('[data-f=u]').value="SERV";setP(moDe(tarifaDe(d)))}
@@ -747,12 +831,14 @@ function bindSheet(){
         if(c&&!it._pManual&&!esMO(it)){const t=tarifaDe(d);let pr;
           if(c.co>0){it.costo=c.co;row.querySelector('[data-f=costo]').value=c.co;pr=precioCot(c.co,d)}
           else pr=(c.pt&&c.pt[t])||c.p;
-          it.u=c.u;setP(pr);if(f==="d"&&c.m&&!it.m){it.m=c.m;row.querySelector('[data-f=m]').value=c.m}row.querySelector('[data-f=u]').value=c.u}
+          it.u=c.u;setP(pr);if(f==="d"&&c.m&&!it.m){it.m=c.m;row.querySelector('[data-f=m]').value=c.m}if(c.np&&!it.np){it.np=c.np;row.querySelector('[data-f=np]').value=c.np}row.querySelector('[data-f=u]').value=c.u}
         if(f==="m")it.m=v;}
       if(f==="p")d.items[k]._pManual=true;
       $("#imp-"+k).textContent=money((+d.items[k].c||0)*(+d.items[k].p||0));$("#totals").innerHTML=totalsHTML(d)});
     if(f==="u")el.addEventListener("change",()=>d.items[k].u=el.value);
   });
+  ["e-anio","e-marca","e-modelo"].forEach(id=>{const e=$("#"+id);if(e&&!hist(d))e.addEventListener("change",()=>{if(!(S.gh&&S.gh.cerrado&&S.gh.d===d))ghAuto(d)})});
+  const ghb=$("#gh-btn");if(ghb)ghb.onclick=()=>{if(!d.marca||!d.modelo||!d.anio){toast("Primero captura marca, modelo y año del vehículo")}ghAbrir(d)};if(S.gh&&S.gh.open){if(S.gh.d===d)ghMount(d);else S.gh.open=false}
   $("#add-row").onclick=()=>{d.items.push({c:1,u:"PZA",d:"",p:0});renderSheet();const all=app.querySelectorAll("input.desc");all[all.length-1].focus()};
   app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{d.items.splice(+b.dataset.del,1);if(!d.items.length)d.items.push({c:1,u:"PZA",d:"",p:0});renderSheet()});
   document.querySelectorAll('input[name=factura]').forEach(r=>r.onchange=e=>{d.factura=e.target.value==="si";revisarDescuento(d);recalcPrecios(d);renderSheet()});
@@ -786,6 +872,8 @@ function validate(d){
   if(d.items.some(i=>String(i.d).trim()&&!(+i.c>0)))e.push("Hay renglones con cantidad en cero.");
   const sinMarca=d.items.filter(i=>String(i.d).trim()&&needsBrand(i)&&!String(i.m||"").trim());
   if(sinMarca.length)e.push("Falta la marca en: "+sinMarca.map(i=>i.d).join(", ")+". La marca es obligatoria en todas las refacciones (en servicios y mano de obra no aplica).");
+  const sinParte=d.items.filter(i=>String(i.d).trim()&&needsBrand(i)&&!String(i.np||"").trim());
+  if(sinParte.length)e.push("Falta el número de parte en: "+sinParte.map(i=>i.d).join(", ")+". Es obligatorio en todas las refacciones (ej. GP-6811). Búscalo con el botón Sugerir refacciones o en el catálogo de tu proveedor.");
   return e;
 }
 async function save(){
@@ -794,7 +882,7 @@ async function save(){
   S.showErr=false;
   const btn=$("#save");btn.disabled=true;btn.textContent="Guardando…";
   try{
-    d.items=d.items.filter(i=>String(i.d).trim()).map(i=>({c:+i.c,u:i.u,d:String(i.d).trim().toUpperCase(),m:String(i.m||"").trim().toUpperCase(),p:Math.round((+i.p||0)*100)/100,costo:+i.costo||0}));
+    d.items=d.items.filter(i=>String(i.d).trim()).map(i=>({c:+i.c,u:i.u,d:String(i.d).trim().toUpperCase(),m:String(i.m||"").trim().toUpperCase(),...(String(i.np||"").trim()?{np:String(i.np).trim().toUpperCase()}:{}),p:Math.round((+i.p||0)*100)/100,costo:+i.costo||0}));
     d.tarifa=tarifaDe(d);
     if(!d.concepto.trim())d.concepto=d.items.filter(i=>!/MANO DE OBRA/.test(i.d)).map(i=>i.d.charAt(0)+i.d.slice(1).toLowerCase()).join(", ").slice(0,90);
     const now=new Date().toISOString();
@@ -828,8 +916,8 @@ async function learn(q){
     const cat=S.cat.slice();const idx=new Map(cat.map((c,i)=>[norm(c.d),i]));let ch=false;
     for(const it of q.items){if(!(it.p>0))continue;const k=norm(it.d+" "+(it.m||""));const i=idx.has(k)?idx.get(k):(it.m?undefined:idx.get(norm(it.d)));
       const t=q.tarifa||"particular";
-      if(i==null){cat.unshift({d:it.d,m:it.m||"",u:it.u,p:it.p,n:1,pt:{[t]:it.p},...(it.costo>0?{co:it.costo}:{})});[...idx.keys()].forEach(x=>idx.set(x,idx.get(x)+1));idx.set(k,0);ch=true}
-      else{const o=cat[i];const pt={...(o.pt||{}),[t]:it.p};if(o.p!==it.p||o.u!==it.u||(o.pt||{})[t]!==it.p||(it.costo>0&&o.co!==it.costo)){cat[i]={...o,p:it.p,u:it.u,pt,n:(o.n||0)+1,...(it.costo>0?{co:it.costo}:{})};ch=true}}}
+      if(i==null){cat.unshift({d:it.d,m:it.m||"",...(it.np?{np:it.np}:{}),u:it.u,p:it.p,n:1,pt:{[t]:it.p},...(it.costo>0?{co:it.costo}:{})});[...idx.keys()].forEach(x=>idx.set(x,idx.get(x)+1));idx.set(k,0);ch=true}
+      else{const o=cat[i];const pt={...(o.pt||{}),[t]:it.p};if(o.p!==it.p||o.u!==it.u||(it.np&&o.np!==it.np)||(o.pt||{})[t]!==it.p||(it.costo>0&&o.co!==it.costo)){cat[i]={...o,...(it.np?{np:it.np}:{}),p:it.p,u:it.u,pt,n:(o.n||0)+1,...(it.costo>0?{co:it.costo}:{})};ch=true}}}
     if(ch)await S.db.doc("cat/refacciones").set({items:cat});
     const cl=S.cl.slice();const ci=cl.findIndex(c=>norm(c.n)===norm(q.cliente));
     const ce={n:q.cliente,tel:q.tel,cred:!!q.credito};
