@@ -51,6 +51,7 @@ button:hover,.btn:hover{border-color:var(--brand)}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 button.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
 .gh{margin:10px 0;padding:10px 12px;border:1px solid var(--brand);border-radius:10px;background:var(--panel)}.gh-h{display:flex;gap:10px;align-items:center;margin-bottom:8px}.gh-h #gh-x{margin-left:auto;padding:2px 10px}.gh-f{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}.gh-f label{display:flex;flex-direction:column;font-size:12px;color:var(--label);gap:2px}.gh-f select{min-width:120px}.gh-g{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.gh-g>b{width:100%;font-size:12px;color:var(--label)}.gh-g button{font-weight:600}.gh-err{color:var(--bad)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}.card h2{font-size:17px}
 button.wa,.btn.wa{background:#1f8a4c;border-color:#1f8a4c;color:#fff}
 button:disabled{opacity:.5;cursor:not-allowed}
 input,select,textarea{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
@@ -176,6 +177,7 @@ table.it input.n{text-align:right}
   <nav class="tabs" aria-label="Secciones">
     <a href="#control" id="tab-control">Control</a>
     <a href="#catalogos" id="tab-cat">Catálogos</a>
+    <a href="#reportes" id="tab-rep">Reportes</a>
     <a href="#nueva" id="tab-nueva">+ Nueva cotización</a>
   </nav>
 </div></header>
@@ -275,7 +277,8 @@ function newDraft(base){
 let rerenderLock=false;
 function render(fromData){
   const h=location.hash.slice(1)||"control";
-  ["#tab-control","#tab-nueva","#tab-cat"].forEach(t=>$(t).removeAttribute("aria-current"));
+  ["#tab-control","#tab-nueva","#tab-cat","#tab-rep"].forEach(t=>{const e=$(t);if(e)e.removeAttribute("aria-current")});
+  if(h==="reportes"){$("#tab-rep").setAttribute("aria-current","page");if(!(fromData&&document.activeElement&&$("#app").contains(document.activeElement)&&document.activeElement.matches("select")))renderReportes();return}
   if(h==="catalogos"||h==="clientes"){$("#tab-cat").setAttribute("aria-current","page");if(!(fromData&&document.activeElement&&document.activeElement.id==="k-q"))renderCatalog(h);return}
   if(h==="control"||!h)$("#tab-control").setAttribute("aria-current","page");
   if(h==="nueva")$("#tab-nueva").setAttribute("aria-current","page");
@@ -286,6 +289,56 @@ function render(fromData){
   } else renderControl();
 }
 
+/* ---------- reportes ---------- */
+S.rep={sem:null,modo:"trab",mes:todayISO().slice(0,7),serv:false};
+function semanaDe(iso){const d=new Date(iso+"T12:00:00");const dow=d.getDay();const lun=new Date(d);lun.setDate(d.getDate()-((dow+6)%7));const sab=new Date(lun);sab.setDate(lun.getDate()+5);const f=x=>new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);return [f(lun),f(sab)]}
+function repSemana(){const [a,b]=S.rep.sem||semanaDe(todayISO());const md=S.rep.modo;const fe=q=>md==="trab"?(q.trabajada||""):q.fecha;const rows=[...S.quotes.values()].filter(q=>!hist(q)&&(md!=="trab"||(q.estado==="aprobada"&&q.trabajada))&&(md!=="apr"||q.estado==="aprobada")&&fe(q)>=a&&fe(q)<=b+"~").sort((x,y)=>fe(x).localeCompare(fe(y))||String(x.folio).localeCompare(String(y.folio)));
+  return {a,b,rows:rows.map(q=>{const c=calc(q);const serv=String(q.concepto||"").trim()||(q.items||[]).filter(i=>String(i.d||"").trim()).slice(0,3).map(i=>i.d).join(", ");return {fecha:fe(q),folio:q.folio,cliente:q.cliente,veh:[q.marca,q.modelo,q.anio].filter(Boolean).join(" "),placa:q.placa||"",km:q.km||"",serv,tipo:q.tipoServ||"",total:c.total,estado:q.estado}})}}
+function repRefacciones(){const ym=S.rep.mes;const m=new Map();
+  for(const q of S.quotes.values()){if(hist(q)||q.fecha.slice(0,7)!==ym||q.estado!=="aprobada")continue;
+    for(const it of q.items||[]){if(!String(it.d||"").trim())continue;if(!S.rep.serv&&!needsBrand(it))continue;const k=nk(it.d+" "+(it.np||"")+" "+(it.m||""));let e=m.get(k);if(!e){e={d:String(it.d).toUpperCase(),np:it.np||"",m:it.m||"",u:it.u,q:0,veces:0,veh:new Set(),co:0,p:0};m.set(k,e)}
+      e.q+=+it.c||0;e.veces++;e.veh.add([q.modelo,q.anio].filter(Boolean).join(" "));if(+it.costo>0)e.co=+it.costo;if(+it.p>0)e.p=+it.p}}
+  return [...m.values()].sort((x,y)=>y.q-x.q||y.veces-x.veces)}
+function renderReportes(){const app=$("#app");const R=S.rep;const [a,b]=R.sem||semanaDe(todayISO());const W=repSemana();const F=repRefacciones();
+  const meses=[];for(let ym=todayISO().slice(0,7);ym>="2026-11";){meses.push(ym);let [y,mm]=ym.split("-").map(Number);mm--;if(mm<1){mm=12;y--}ym=y+"-"+String(mm).padStart(2,"0")}
+  const totW=W.rows.reduce((s,r)=>s+r.total,0);
+  app.innerHTML=`<h1>Reportes</h1><div class="muted">Se arman solos con las cotizaciones de la app. Descárgalos en PDF para enviar o en Excel para trabajarlos.</div>
+  <section class="card" style="margin-top:14px"><h2 style="margin:0 0 6px">Informe semanal de vehículos trabajados</h2>
+   <div class="filters"><label>Semana (lunes a sábado)<span style="display:flex;gap:6px;align-items:center"><button id="r-ant" type="button">◀</button><b>${dmy(a)} al ${dmy(b)}</b><button id="r-sig" type="button">▶</button><button id="r-hoy" type="button">Esta semana</button></span></label>
+   <label>Incluir<span class="seg"><button data-rt="trab" aria-pressed="${R.modo==="trab"}">Trabajadas en la semana</button><button data-rt="apr" aria-pressed="${R.modo==="apr"}">Aprobadas</button><button data-rt="todas" aria-pressed="${R.modo==="todas"}">Todas las cotizadas</button></span></label></div>
+   <p><b>${W.rows.length}</b> vehículo(s) · Total <b>${money(totW)}</b></p>
+   <div class="tablebox"><table class="ctl" style="min-width:860px"><thead><tr><th>${R.modo==="trab"?"Trabajado":"Fecha"}</th><th>Folio</th><th>Cliente</th><th>Vehículo</th><th>Placa</th><th>Servicio</th><th class="num">Total</th>${R.modo==="todas"?"<th>Estado</th>":""}</tr></thead><tbody>
+   ${W.rows.map(r=>`<tr><td>${dmy(r.fecha)}</td><td>${esc(r.folio)}</td><td>${esc(r.cliente)}</td><td>${esc(r.veh)}</td><td>${esc(r.placa)}</td><td>${esc(r.serv)}</td><td class="num">${money(r.total)}</td>${R.modo==="todas"?`<td>${esc(r.estado)}</td>`:""}</tr>`).join("")||`<tr><td colspan="8" class="muted">${R.modo==="trab"?"No hay vehículos marcados como trabajados en esta semana. Márcalos en Control con el botón 🔧.":"No hay cotizaciones en esta semana."}</td></tr>`}</tbody></table></div>
+   <div class="actions"><button class="primary" id="r-w-pdf">⬇ PDF</button><button id="r-w-csv">⬇ Excel</button></div></section>
+  <section class="card" style="margin-top:14px"><h2 style="margin:0 0 6px">Refacciones más usadas del mes</h2>
+   <div class="filters"><label>Mes<select id="r-mes">${meses.map(m=>`<option value="${m}" ${R.mes===m?"selected":""}>${MESES[+m.slice(5)-1]} ${m.slice(0,4)}</option>`).join("")}</select></label>
+   <label>Incluir<span class="seg"><button data-rs="0" aria-pressed="${!R.serv}">Solo refacciones</button><button data-rs="1" aria-pressed="${R.serv}">También servicios</button></span></label></div>
+   <p class="muted">Cuenta las piezas de las cotizaciones <b>aprobadas</b> del mes. Para el historial anterior a noviembre usa Catálogos.</p>
+   <div class="tablebox"><table class="ctl" style="min-width:860px"><thead><tr><th>#</th><th>Refacción</th><th>No. parte</th><th>Marca</th><th class="num">Piezas</th><th class="num">Veces</th><th>Vehículos</th><th class="num">Último costo</th><th class="num">Último precio</th></tr></thead><tbody>
+   ${F.map((r,i)=>`<tr><td>${i+1}</td><td><b>${esc(r.d)}</b></td><td>${esc(r.np||"—")}</td><td>${esc(r.m||"—")}</td><td class="num">${+r.q.toFixed(2)}</td><td class="num">${r.veces}</td><td>${esc([...r.veh].slice(0,4).join(", "))}</td><td class="num">${r.co?money(r.co):"—"}</td><td class="num">${r.p?money(r.p):"—"}</td></tr>`).join("")||`<tr><td colspan="9" class="muted">Aún no hay cotizaciones aprobadas en este mes.</td></tr>`}</tbody></table></div>
+   <div class="actions"><button class="primary" id="r-f-pdf">⬇ PDF</button><button id="r-f-csv">⬇ Excel</button></div></section>`;
+  const mv=n=>{const d=new Date(a+"T12:00:00");d.setDate(d.getDate()+7*n);S.rep.sem=semanaDe(new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10));renderReportes()};
+  $("#r-ant").onclick=()=>mv(-1);$("#r-sig").onclick=()=>mv(1);$("#r-hoy").onclick=()=>{S.rep.sem=null;renderReportes()};
+  app.querySelectorAll("[data-rt]").forEach(x=>x.onclick=()=>{S.rep.modo=x.dataset.rt;renderReportes()});
+  app.querySelectorAll("[data-rs]").forEach(x=>x.onclick=()=>{S.rep.serv=x.dataset.rs==="1";renderReportes()});
+  $("#r-mes").onchange=e=>{S.rep.mes=e.target.value;renderReportes()};
+  const W2=()=>({titulo:"INFORME SEMANAL DE VEHÍCULOS TRABAJADOS",sub:"Semana del "+dmy(a)+" al "+dmy(b)+(R.modo==="trab"?" · vehículos trabajados":R.modo==="apr"?" · cotizaciones aprobadas":" · todas las cotizadas"),cols:[R.modo==="trab"?"Trabajado":"Fecha","Folio","Cliente","Vehículo","Placa","Servicio","Total"],w:[52,62,120,110,58,240,70],al:["l","l","l","l","l","l","r"],rows:W.rows.map(r=>[dmy(r.fecha),r.folio,r.cliente,r.veh,r.placa,r.serv,money(r.total)]),pie:W.rows.length+" vehículo(s) · Total "+money(totW),file:"Informe semanal "+a+" al "+b});
+  const F2=()=>({titulo:"REFACCIONES MÁS USADAS DEL MES",sub:MESES[+R.mes.slice(5)-1]+" "+R.mes.slice(0,4)+" · cotizaciones aprobadas",cols:["#","Refacción","No. parte","Marca","Piezas","Veces","Último costo","Último precio"],w:[24,230,92,84,48,44,96,96],al:["r","l","l","l","r","r","r","r"],rows:F.map((r,i)=>[String(i+1),r.d,r.np||"—",r.m||"—",String(+r.q.toFixed(2)),String(r.veces),r.co?money(r.co):"—",r.p?money(r.p):"—"]),pie:F.length+" refacción(es) distintas",file:"Refacciones del mes "+R.mes});
+  $("#r-w-pdf").onclick=()=>repPDF(W2());$("#r-f-pdf").onclick=()=>repPDF(F2());$("#r-w-csv").onclick=()=>repCSV(W2());$("#r-f-csv").onclick=()=>repCSV(F2());
+}
+async function repSave(name,blob){if(!S.dl){toast("Esta vista no permite descargar archivos.");return}try{await S.dl.save({filename:name,data:blob})}catch(e){if(e&&e.code!=="declined")toast("No se pudo descargar ("+(e.code||"error")+").")}}
+function repCSV(t){const cell=v=>{const s=String(v??"");return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};const csv="﻿"+[[t.titulo],[t.sub],[],t.cols].concat(t.rows).concat([[],[t.pie]]).map(l=>l.map(cell).join(",")).join("\r\n");repSave(t.file+".csv",new Blob([csv],{type:"text/csv"}))}
+function repPDF(t){if(!window.jspdf){toast("No cargó el generador de PDF; revisa tu internet.");return}
+  const doc=new jspdf.jsPDF({orientation:"landscape",unit:"pt",format:"letter"});const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight();const M=36;let y=M;
+  const tw=t.w.reduce((s,x)=>s+x,0);const k=(W-2*M)/tw;const ws=t.w.map(x=>x*k);
+  const head=()=>{doc.setFillColor(12,118,158);doc.rect(0,0,W,6,"F");doc.setFont("helvetica","bold");doc.setFontSize(14);doc.setTextColor(12,118,158);doc.text("QUARTA MARCHIA",M,M+6);doc.setTextColor(20);doc.setFontSize(12);doc.text(t.titulo,M,M+24);doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(90);doc.text(t.sub,M,M+38);doc.text("Generado el "+dmy(todayISO()),W-M,M+6,{align:"right"});y=M+52;
+    doc.setFillColor(230,240,245);doc.rect(M,y,W-2*M,16,"F");doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.setTextColor(20);let x=M;t.cols.forEach((c,i)=>{doc.text(c,t.al[i]==="r"?x+ws[i]-4:x+4,y+11,{align:t.al[i]==="r"?"right":"left"});x+=ws[i]});y+=20;doc.setFont("helvetica","normal")};
+  head();doc.setFontSize(8.5);
+  for(const r of t.rows){const lines=r.map((c,i)=>doc.splitTextToSize(String(c??""),ws[i]-8));const h=Math.max(...lines.map(l=>l.length))*10+4;
+    if(y+h>H-M-20){doc.addPage();head();doc.setFontSize(8.5)}let x=M;lines.forEach((l,i)=>{doc.text(l,t.al[i]==="r"?x+ws[i]-4:x+4,y+8,{align:t.al[i]==="r"?"right":"left"});x+=ws[i]});y+=h;doc.setDrawColor(220);doc.line(M,y-2,W-M,y-2)}
+  if(!t.rows.length){doc.setTextColor(120);doc.text("Sin registros en este periodo.",M+4,y+10);y+=20}
+  doc.setFont("helvetica","bold");doc.setTextColor(20);doc.setFontSize(10);doc.text(t.pie,M,Math.min(y+16,H-M));
+  repSave(t.file+".pdf",doc.output("blob"))}
 function lastContact(q){const s=(q.seg||[]).slice(-1)[0];return s||q.enviada||q.creado||q.fecha}
 const hist=q=>!!q.importado; // cotizaciones traídas del Excel: solo de consulta
 const SEG_DESDE="2026-11-01"; // el seguimiento arranca en noviembre 2026
@@ -304,7 +357,7 @@ function renderControl(){
   const inMonth=inMonthAll.filter(q=>!hist(q));
   const nHist=inMonthAll.length-inMonth.length;
   const qn=norm(f.q);
-  const rows=inMonthAll.filter(q=>(f.estado==="todos"||(!hist(q)&&q.estado===f.estado))&&(f.tipo==="todos"||(f.tipo==="credito")===!!q.credito)
+  const rows=inMonthAll.filter(q=>(f.estado==="todos"||(!hist(q)&&(f.estado==="portrabajar"?(q.estado==="aprobada"&&!q.trabajada):f.estado==="agendada"?(q.estado==="aprobada"&&!q.trabajada&&!!q.cita):f.estado==="trabajada"?(q.estado==="aprobada"&&!!q.trabajada):q.estado===f.estado)))&&(f.tipo==="todos"||(f.tipo==="credito")===!!q.credito)
     &&(!qn||norm([q.folio,q.cliente,q.placa,q.modelo,q.marca,q.concepto,q.tel].join(" ")).includes(qn)))
     .sort((a,b)=>b.fecha.localeCompare(a.fecha)||(b.creado||"").localeCompare(a.creado||"")||b.num-a.num);
   const cnt=e=>inMonth.filter(q=>q.estado===e);
@@ -347,6 +400,12 @@ function renderControl(){
     <div class="tile bad"><div class="k">No aprobadas</div><div class="v">${re.length}</div><div class="s">${money(sum(re))} perdido</div></div>
     <div class="tile"><div class="k">Tasa de aprobación</div><div class="v">${decided?Math.round(ap.length/decided*100)+"%":"—"}</div><div class="s">de las ya decididas</div></div>
   </div>`;
+  {const man=new Date(today+"T12:00:00");man.setDate(man.getDate()+1);const mISO=man.toISOString().slice(0,10);
+   const citas=[...S.quotes.values()].filter(q=>!hist(q)&&q.estado==="aprobada"&&!q.trabajada&&q.cita&&String(q.cita).slice(0,10)<=mISO).sort((a,b)=>String(a.cita).localeCompare(String(b.cita)));
+   if(citas.length){html+=`<section class="follow" aria-label="Citas próximas"><h2>📅 Citas de hoy y mañana <span class="tag">${citas.length}</span></h2><div class="hint">Vehículos agendados que aún no se trabajan. Envía el recordatorio por WhatsApp; las vencidas aparecen en rojo.</div><ul>`;
+    for(const q of citas){const cd=String(q.cita).slice(0,10);const venc=cd<today;
+     html+=`<li><span class="who"><button class="folio" data-open="${esc(q.folio)}">${esc(q.folio)}</button> · <b>${esc(q.cliente)}</b> · ${esc(vehStr(q)||q.concepto||"")} · <span style="${venc?"color:var(--bad);font-weight:600":""}">${venc?"Vencida: ":cd===today?"Hoy ":"Mañana "}${esc(citaStr(q.cita))}</span>${q.citaAviso?` <span class="muted">· recordado ${dmy(q.citaAviso.slice(0,10))}</span>`:""}</span>${waButton(q,"cita")}</li>`}
+    html+=`</ul></section>`}}
   if(follow.length){
     html+=`<section class="follow" aria-label="Dar seguimiento hoy"><h2>Dar seguimiento hoy <span class="tag">${follow.length}</span></h2>
     <div class="hint">Cotizaciones sin respuesta con 2 días o más desde el último contacto (solo las de los últimos 15 días).</div><ul>`;
@@ -366,7 +425,7 @@ function renderControl(){
   if(nHist)html+=`<div class="hint" style="margin-bottom:8px">${nHist} cotizaciones de este mes vienen del Excel y se muestran en gris <b>solo como consulta</b>: no cuentan en los totales ni en el seguimiento.</div>`;
   html+=`<div class="filters">
     <label>Mes<select id="f-mes">${months.map(m=>`<option value="${m}" ${m===f.mes?"selected":""}>${MESES[+m.slice(5)-1]} ${m.slice(0,4)}</option>`).join("")}</select></label>
-    <label>Estado<span class="seg" role="group" aria-label="Estado">${[["todos","Todas"],["aprobada","🟢 Aprobadas"],["pendiente","🟡 Sin respuesta"],["rechazada","🔴 No aprobadas"]].map(([v,t])=>`<button data-fest="${v}" aria-pressed="${f.estado===v}">${t}</button>`).join("")}</span></label>
+    <label>Estado<span class="seg" role="group" aria-label="Estado">${[["todos","Todas"],["aprobada","🟢 Aprobadas"],["portrabajar","🛠 Por trabajar"],["agendada","📅 Agendadas"],["trabajada","🔧 Trabajadas"],["pendiente","🟡 Sin respuesta"],["rechazada","🔴 No aprobadas"]].map(([v,t])=>`<button data-fest="${v}" aria-pressed="${f.estado===v}">${t}</button>`).join("")}</span></label>
     <label>Cliente<span class="seg" role="group" aria-label="Tipo de cliente">${[["todos","Todos"],["credito","Crédito"],["particular","Particular"]].map(([v,t])=>`<button data-ftipo="${v}" aria-pressed="${f.tipo===v}">${t}</button>`).join("")}</span></label>
     <label class="grow">Buscar<input id="f-q" type="search" placeholder="Folio, cliente, placa, vehículo…" value="${esc(f.q)}"></label>
   </div>`;
@@ -397,7 +456,12 @@ function stateButtons(q){
   return `<span class="state" role="group" aria-label="Estado de ${esc(q.folio)}">
     <button ${dis} class="aprobada ${q.estado==="aprobada"?"on":""}" data-set="aprobada" data-f="${esc(q.folio)}" title="Aprobada" aria-pressed="${q.estado==="aprobada"}">✓</button>
     <button ${dis} class="pendiente ${q.estado==="pendiente"?"on":""}" data-set="pendiente" data-f="${esc(q.folio)}" title="Sin respuesta" aria-pressed="${q.estado==="pendiente"}">…</button>
-    <button ${dis} class="rechazada ${q.estado==="rechazada"?"on":""}" data-set="rechazada" data-f="${esc(q.folio)}" title="No aprobada" aria-pressed="${q.estado==="rechazada"}">✕</button></span>`;
+    <button ${dis} class="rechazada ${q.estado==="rechazada"?"on":""}" data-set="rechazada" data-f="${esc(q.folio)}" title="No aprobada" aria-pressed="${q.estado==="rechazada"}">✕</button></span>`+(q.estado==="aprobada"?(q.trabajada?`<div class="trab" style="margin-top:4px;display:flex;gap:4px;align-items:center;flex-wrap:wrap"><span class="tag" style="background:#e3f5ea;color:#1f8a4c">🔧 Trabajada</span><input type="date" ${dis} data-trabf="${esc(q.folio)}" value="${esc(q.trabajada)}" aria-label="Fecha en que se trabajó" style="font-size:12px;padding:2px 4px;width:auto"><button ${dis} data-trab="0" data-f="${esc(q.folio)}" title="Quitar marca de trabajada" style="padding:2px 6px;font-size:12px">↺</button></div>`:`<div style="margin-top:4px"><button ${dis} data-trab="1" data-f="${esc(q.folio)}" title="Marcar que el vehículo ya se trabajó" style="padding:3px 8px;font-size:12px">🔧 Marcar trabajada</button></div>`+citaUI(q,dis)):"");
+}
+function citaStr(c){if(!c)return "";const [f,h]=String(c).split("T");const d=new Date(f+"T12:00:00");const dia=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"][d.getDay()];return dia+" "+dmy(f)+(h?" a las "+h.slice(0,5):"")}
+function citaUI(q,dis){
+  const v=q.cita?esc(String(q.cita).slice(0,16)):"";
+  return `<div style="margin-top:4px;display:flex;gap:4px;align-items:center;flex-wrap:wrap"><label class="hint" style="margin:0">📅 Cita</label><input type="datetime-local" ${dis} data-cita="${esc(q.folio)}" value="${v}" aria-label="Día y hora en que el cliente trae el vehículo" style="font-size:12px;padding:2px 4px;width:auto">${q.cita?`<button ${dis} data-cita0="${esc(q.folio)}" title="Quitar cita" style="padding:2px 6px;font-size:12px">✕</button>`+waButton(q,"cita",true)+(q.citaAviso?`<span class="hint">Recordado ${dmy(q.citaAviso.slice(0,10))}</span>`:""):""}</div>`;
 }
 function reasonPop(q){return `<div class="pop" aria-label="Motivo">${MOTIVOS.map(m=>`<button data-motivo="${esc(m)}" data-f="${esc(q.folio)}">${esc(m)}</button>`).join("")}</div>`}
 
@@ -519,10 +583,11 @@ function waText(q,kind){
   const v=[q.marca?q.modelo:q.modelo,q.anio,q.placa].filter(Boolean).join(" ")||"vehículo";
   const t=money(calc(q).total);
   if(kind==="envio")return `Buen día${saludoNombre(q)}. Le comparto la cotización ${q.folio} de su ${v}${q.sinPrecio?"":" por "+t+(q.sinIva?"":" (IVA incluido)")}. Le adjunto el PDF.${descTipoDe(q)==="efectivo"?" El descuento por pago en efectivo es válido durante "+MESES[+q.fecha.slice(5,7)-1].toLowerCase()+".":""} Quedamos atentos a su autorización.\n\nQuarta Marchia · 981 206 8402`;
+  if(kind==="cita")return `Hola${saludoNombre(q)}. Le recordamos su cita en Quarta Marchia el ${citaStr(q.cita)} para el servicio de su ${v} (cotización ${q.folio}). Si necesita cambiar el horario, por favor avísenos por este medio.\n\nQuarta Marchia · 981 206 8402`;
   if(kind==="seguimiento")return `Hola${saludoNombre(q)}. Le escribimos para dar seguimiento a la cotización ${q.folio} de su ${v}. ¿Desea que programemos el servicio?\n\nQuarta Marchia · 981 206 8402`;
   return `Buen día${saludoNombre(q)}. Su ${v} ya está lista para entrega. Le esperamos de lunes a viernes de 8:00 a 18:00 y sábado de 8:00 a 14:00.\n\nQuarta Marchia · 981 206 8402`;
 }
-const WA_LABEL={envio:"Enviar",seguimiento:"Seguimiento",lista:"Unidad lista"};
+const WA_LABEL={envio:"Enviar",seguimiento:"Seguimiento",lista:"Unidad lista",cita:"Recordar cita"};
 function waButton(q,kind,compact){
   const n=waNumber(q.tel);
   if(!n)return `<span class="muted" title="Agrega el celular del cliente">Sin celular</span>`;
@@ -536,6 +601,8 @@ function bindControl(){
   const fb=$("#fol-box");if(fb)fb.ontoggle=()=>S.folOpen=fb.open;
   const tb=$("#tar-box");if(tb)tb.ontoggle=()=>S.tarOpen=tb.open;
   const m=$("#f-mes");if(m)m.onchange=e=>{S.filt.mes=e.target.value;render()};
+  app.querySelectorAll("[data-cita]").forEach(i=>i.onchange=async()=>{if(i.value){await patch(i.dataset.cita,{cita:i.value,citaAviso:null});i.blur();render()}});
+  app.querySelectorAll("[data-trabf]").forEach(i=>i.onchange=async()=>{if(i.value){await patch(i.dataset.trabf,{trabajada:i.value});i.blur();render()}});
   const qq=$("#f-q");if(qq)qq.oninput=e=>{S.filt.q=e.target.value;clearTimeout(bindControl.t);bindControl.t=setTimeout(()=>{const pos=qq.selectionStart;render();const n=$("#f-q");n.focus();n.setSelectionRange(pos,pos)},250)};
   app.onclick=async e=>{
     const b=e.target.closest("button,a");if(!b)return;
@@ -548,6 +615,8 @@ function bindControl(){
     if(b.dataset.set){const f=b.dataset.f;
       if(b.dataset.set==="rechazada"){S.rejectOpen=S.rejectOpen===f?null:f;render();return}
       S.rejectOpen=null;await patch(f,{estado:b.dataset.set,motivo:""});return}
+    if(b.dataset.cita0){await patch(b.dataset.cita0,{cita:null,citaAviso:null});return}
+    if(b.dataset.trab){await patch(b.dataset.f,{trabajada:b.dataset.trab==="1"?todayISO():null});return}
     if(b.dataset.motivo){S.rejectOpen=null;await patch(b.dataset.f,{estado:"rechazada",motivo:b.dataset.motivo});return}
     if(b.dataset.wa){markContact(b.dataset.f,b.dataset.wa)}
   };
@@ -577,6 +646,7 @@ function markContact(folio,kind){
   const now=new Date().toISOString();
   if(kind==="envio")patch(folio,{enviada:now});
   else if(kind==="seguimiento")patch(folio,{seg:[...(q.seg||[]),now].slice(-20)});
+  else if(kind==="cita")patch(folio,{citaAviso:now});
 }
 
 /* ---------- hoja de cotización ---------- */
