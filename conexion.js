@@ -130,17 +130,31 @@
         colL.add(l);if(cargado)setTimeout(()=>l.fire(),0);return()=>colL.delete(l)}};return q},
     async nextFolio(serie){const {data,error}=await sb.rpc("qm_next_folio",{p_serie:serie});if(error)throw err(error);return data}
   };
-  /* La primera vez que Gerencia entra con la base vacía, se cargan los datos que venían de Claude */
+  /* La primera vez que Gerencia entra con la base vacía, elige en su computadora el archivo
+     datos-iniciales.json (cotizaciones, catálogos, márgenes). Así esos datos nunca se publican en internet. */
   async function cargaInicial(){
     if(cache.has("cfg/folios"))return;
     const {data:esAdmin}=await sb.rpc("qm_is_admin");
     if(!esAdmin){aviso("La base de datos está vacía. Gerencia debe entrar primero para cargar los datos.");return}
-    aviso("Cargando por primera vez cotizaciones, catálogos y márgenes…");
-    const r=await fetch("datos-iniciales.json",{cache:"no-store"});if(!r.ok){aviso("No encontré el archivo de datos iniciales.");return}
-    const filas=await r.json();
-    for(let i=0;i<filas.length;i+=25){const {error}=await sb.from("qm_docs").upsert(filas.slice(i,i+25).map(f=>({...f,updated_at:new Date().toISOString()})));if(error){aviso("Error al cargar datos: "+error.message);return}}
+    const filas=await elegirArchivo();
+    if(!filas)return;
+    aviso("Cargando "+filas.length+" registros…");
+    for(let i=0;i<filas.length;i+=25){const {error}=await sb.from("qm_docs").upsert(filas.slice(i,i+25).map(f=>({path:f.path,col:f.col,data:f.data,updated_at:new Date().toISOString()})));if(error){aviso("Error al cargar datos: "+error.message);return}}
     await cargarTodo();aviso("Listo: se cargaron "+filas.length+" registros.",true);
   }
+  function elegirArchivo(){return new Promise(res=>{
+    let ov=document.createElement("div");ov.id="qm-login";document.body.appendChild(ov);
+    ov.innerHTML=`<form id="qm-carga"><img src="logo.png" alt="Quarta Marchia" style="height:46px;align-self:center">
+      <div class="qm-q">Cargar datos iniciales</div>
+      <div class="hint" style="text-align:center">Es la primera vez que se usa esta base. Elige el archivo <b>datos-iniciales.json</b> de la carpeta <b>APP COTIZACIONES QM</b> en tu computadora.</div>
+      <div id="qm-carga-msg"></div>
+      <label class="primary" style="display:block;text-align:center;padding:12px;border-radius:8px;background:var(--brand);color:var(--brand-ink);font-weight:700;cursor:pointer">Elegir archivo…<input id="qm-file" type="file" accept=".json,application/json" style="display:none"></label>
+      <button type="button" class="qm-otro" id="qm-omitir">Empezar sin datos anteriores</button></form>`;
+    document.getElementById("qm-omitir").onclick=async()=>{await sb.from("qm_docs").upsert({path:"cfg/folios",col:"cfg",data:{C:0,P:0}});ov.remove();res(null)};
+    document.getElementById("qm-file").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+      try{const filas=JSON.parse(await f.text());if(!Array.isArray(filas)||!filas.some(x=>x&&x.path==="cfg/folios"))throw 0;ov.remove();res(filas)}
+      catch(_){document.getElementById("qm-carga-msg").innerHTML='<div class="qm-login-msg">Ese no es el archivo correcto. Busca datos-iniciales.json.</div>'}};
+  })}
   function aviso(t,cerrar){let a=document.getElementById("qm-aviso");if(!a){a=document.createElement("div");a.id="qm-aviso";a.style.cssText="position:fixed;left:50%;transform:translateX(-50%);top:12px;z-index:60;background:#0c769e;color:#fff;padding:10px 16px;border-radius:10px;font-weight:600;max-width:90%";document.body.appendChild(a)}a.textContent=t;if(cerrar)setTimeout(()=>a.remove(),5000)}
   const user={can:async()=>true,isOwner:async()=>{const {data}=await sb.rpc("qm_is_admin");return !!data},canEdit:async()=>true};
   const downloads={save:async({filename,data})=>{const blob=data instanceof Blob?data:new Blob([data]);const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}};
