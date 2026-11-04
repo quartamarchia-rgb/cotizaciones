@@ -168,6 +168,9 @@ table.it input.n{text-align:right}
   .datos{grid-template-columns:1fr}.datos .col+.col{border-left:0;border-top:1px solid var(--ink)}
   .datos .col{grid-template-columns:120px minmax(0,1fr)}
   h1{font-size:22px}
+  .tabs{flex-wrap:wrap;gap:4px;width:100%}.tabs a{font-size:14px;padding:6px 9px;white-space:nowrap}
+  .seg{flex-wrap:wrap}
+  .follow li{flex-wrap:wrap}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -851,14 +854,14 @@ function renderSheet(){
     </div>
   </div>
   ${integra?`<div class="note-int"><b>Integra Bienestar:</b> descarga las dos versiones. La de precios para cotizar y la <b>sin precio</b> para el diagnóstico.</div>`:""}
-  <div class="items"><table class="it"><thead><tr><th class="c-q">CANTIDAD</th><th class="c-u">UNIDAD</th><th>DESCRIPCIÓN</th><th class="c-m">MARCA</th><th class="c-np" title="Número de parte del fabricante (ej. GP-6811). Obligatorio en refacciones.">No. PARTE</th><th class="c-co" title="Lo que te cobra el proveedor. Indica con el botón si viene con o sin IVA. No se imprime.">COSTO</th><th class="c-p">P.UNITARIO</th><th class="c-i">IMPORTE</th><th class="c-x"><span class="hint">Quitar</span></th></tr></thead><tbody>
+  <div class="items"><table class="it"><thead><tr><th class="c-q">CANTIDAD</th><th class="c-u">UNIDAD</th><th>DESCRIPCIÓN</th><th class="c-m">MARCA</th><th class="c-np" title="Número de parte del fabricante (ej. GP-6811). Obligatorio en refacciones.">No. PARTE</th><th class="c-co" title="Lo que te cobra el proveedor, SIEMPRE SIN IVA. La app le suma el 16%. No se imprime.">COSTO<br><small>SIN IVA</small></th><th class="c-p">P.UNITARIO</th><th class="c-i">IMPORTE</th><th class="c-x"><span class="hint">Quitar</span></th></tr></thead><tbody>
   ${d.items.map((it,k)=>`<tr>
     <td><input class="n" data-k="${k}" data-f="c" type="number" min="0" step="any" value="${esc(it.c)}" aria-label="Cantidad"></td>
     <td><select data-k="${k}" data-f="u" aria-label="Unidad">${["PZA","SERV","LT","JGO","KIT"].concat(["PZA","SERV","LT","JGO","KIT"].includes(it.u)?[]:[it.u]).map(u=>`<option ${u===it.u?"selected":""}>${esc(u)}</option>`).join("")}</select></td>
     <td><input class="desc" data-k="${k}" data-f="d" list="dl-cat" value="${esc(it.d)}" placeholder="Escribe: aceite, balatas, mano de obra…" aria-label="Descripción" autocomplete="off"></td>
     <td><input class="desc${needsBrand(it)&&!String(it.m||"").trim()&&S.showErr?" miss":""}" data-k="${k}" data-f="m" list="dl-marcas" value="${esc(it.m||"")}" placeholder="${needsBrand(it)?"Obligatoria":"No aplica"}" aria-label="Marca" autocomplete="off"></td>
     <td><input class="desc${needsBrand(it)&&!String(it.np||"").trim()&&S.showErr?" miss":""}" data-k="${k}" data-f="np" list="dl-np" value="${esc(it.np||"")}" placeholder="${needsBrand(it)?"Obligatorio":"No aplica"}" aria-label="Número de parte" autocomplete="off"></td>
-    <td><div style="display:flex;gap:3px;align-items:center"><input class="n co" data-k="${k}" data-f="costo" type="number" min="0" step="any" value="${it.costo?esc(sinIvaDe(it)?Math.round(it.costo/1.16*100)/100:it.costo):""}" placeholder="${needsBrand(it)?"Sin IVA":""}" aria-label="Costo del proveedor sin IVA" style="min-width:0"><span class="hint" title="Captura el costo SIN IVA; la app le suma el 16%" style="white-space:nowrap;font-size:11px">s/IVA</span></div></td>
+    <td><div style="display:flex;gap:3px;align-items:center"><input class="n co" data-k="${k}" data-f="costo" type="number" min="0" step="any" value="${it.costo?esc(sinIvaDe(it)?Math.round(it.costo/1.16*100)/100:it.costo):""}" placeholder="${needsBrand(it)?"Sin IVA":""}" aria-label="Costo del proveedor sin IVA" style="min-width:0"></div></td>
     <td><input class="n" data-k="${k}" data-f="p" type="number" min="0" step="any" value="${esc(it.p)}" aria-label="Precio unitario"></td>
     <td class="money" id="imp-${k}">${money((+it.c||0)*(+it.p||0))}</td>
     <td><button class="x" data-del="${k}" aria-label="Quitar renglón">×</button></td></tr>`).join("")}
