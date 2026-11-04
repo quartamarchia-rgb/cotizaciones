@@ -699,7 +699,7 @@ function aplBuscarG(doc,d,txt,conAnio){const mo=norm(d.modelo),y=+d.anio||0;if(!
   const best=new Map();
   for(const r of doc.r){const P=norm(doc.c[r[0]][1]);if(!prd.every(t=>(sin[t]||null)?sin[t].test(P):P.includes(t)))continue;
     const N=" "+norm(r[2])+" ";const tieneMo=N.includes(" "+mo+" ")||(mo1.length>=4&&N.includes(" "+mo1+" "));if(!tieneMo)continue;
-    const segs=norm(r[2]).split(" / ");const ult=" "+segs[segs.length-1]+" ";const enFila=ult.includes(" "+mo1+" ");
+    const segs=String(r[2]).split(" / ").map(norm);const ult=" "+segs[segs.length-1]+" ";const enFila=ult.includes(" "+mo1+" ");
     const rg=aplRangos(String(r[2]));const okY=!y||!rg.length||rg.some(([a,b])=>y>=a&&y<=b);if(conAnio&&!okY)continue;
     const sc=pos.filter(t=>N.includes(t)).length+(enFila?2.5:-1)+(rg.length&&okY?1.5:0)-(!okY?1:0)+(P.startsWith(prd[0])?2:0);const np=r[1];const e=best.get(np);
     if(aplOpuesto(pos,ult))continue;const rs=String(r[2]).split(" / ");const det=rs[rs.length-1].replace(new RegExp("\\b"+np.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","g"),"").replace(/\s+/g," ").trim().slice(0,80);
